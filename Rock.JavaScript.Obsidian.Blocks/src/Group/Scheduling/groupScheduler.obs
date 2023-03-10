@@ -1,0 +1,12 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <div class="panel panel-block">
+        <div class="panel-heading">
+            <h1 class="panel-title">Group Scheduler</h1>
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+    import { ref } from "vue";
+</script>
