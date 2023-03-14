@@ -14,6 +14,7 @@
     import { onConfigurationValuesChanged, useConfigurationValues, useReloadBlock } from "@Obsidian/Utility/block";
 
     const config = useConfigurationValues<SignUpDetailInitializationBox>();
+    const reloadBlock = useReloadBlock();
 
     // #region Values
 
@@ -29,7 +30,7 @@
 
     // #endregion
 
-    onConfigurationValuesChanged(useReloadBlock());
+    onConfigurationValuesChanged(reloadBlock);
 
     onMounted(() => {
         if (signUpDetailElement.value && config.signUpDetailHtml) {
