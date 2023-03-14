@@ -1,0 +1,81 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <Modal v-model="isVisible" title="Filters" saveText="Select" @save="onSave">
+        Select the filter options below to limit what is shown on the group scheduler.
+
+        <GroupPicker v-model="groups"
+                     label="Groups"
+                     :multiple="true"
+                     :limitToSchedulingEnabled="true" />
+
+        <SlidingDateRangePicker v-model="slidingDateRange"
+                                label="Dates" />
+
+        <LocationItemPicker v-model="locations"
+                            label="Locations"
+                            :multiple="true" />
+
+        <SchedulePicker v-model="schedules"
+                        label="Schedules"
+                        :multiple="true" />
+
+    </Modal>
+</template>
+
+<script setup lang="ts">
+    import { PropType, ref } from "vue";
+    import Modal from "@Obsidian/Controls/modal";
+    import GroupPicker from "@Obsidian/Controls/groupPicker";
+    import LocationItemPicker from "@Obsidian/Controls/locationItemPicker";
+    import SchedulePicker from "@Obsidian/Controls/schedulePicker";
+    import SlidingDateRangePicker from "@Obsidian/Controls/slidingDateRangePicker";
+    import { useVModelPassthrough } from "@Obsidian/Utility/component";
+    import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+    import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
+    import { SlidingDateRange } from "@Obsidian/Utility/slidingDateRange";
+
+    const props = defineProps({
+        isVisible: {
+            type: Boolean as PropType<boolean>,
+            required: true
+        },
+
+        appliedFilters: {
+            type: Object as PropType<GroupSchedulerFiltersBag | null | undefined>,
+            required: true
+        }
+    });
+
+    const emit = defineEmits<{
+        (e: "update:isVisible"): void,
+        (e: "applyFilters", value: GroupSchedulerFiltersBag): void
+    }>();
+
+    // #region Values
+
+    const isVisible = useVModelPassthrough(props, "isVisible", emit);
+
+    const groups = ref<ListItemBag[]>(props.appliedFilters?.groups ?? []);
+    const locations = ref<ListItemBag[]>(props.appliedFilters?.locations ?? []);
+    const schedules = ref<ListItemBag[]>(props.appliedFilters?.schedules ?? []);
+
+    const slidingDateRange = ref<SlidingDateRange | null>(null);
+
+    // #endregion
+
+    // #region Event Handlers
+
+    function onSave(): void {
+        const filters: GroupSchedulerFiltersBag = {
+            groups: groups.value,
+            locations: locations.value,
+            schedules: schedules.value
+        };
+
+        emit("applyFilters", filters);
+
+        isVisible.value = false;
+    }
+
+    // #endregion
+</script>

@@ -1,12 +1,108 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <div class="panel panel-block">
-        <div class="panel-heading">
-            <h1 class="panel-title">Group Scheduler</h1>
+    <Alert v-if="blockErrorMessage" alertType="warning">
+        {{ blockErrorMessage }}
+    </Alert>
+
+    <div v-if="!blockErrorMessage" class="new-group-scheduler">
+        <div class="panel panel-block styled-scroll">
+            <div class="panel-heading">
+                <h3 class="panel-title">Group Scheduler</h3>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="panel-collapsable">
+                <!-- Desktop -->
+                <div class="panel-toolbar d-none d-md-flex flex-wrap flex-sm-nowrap justify-content-between">
+                    <div class="d-block text-muted clickable" @click="onFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+
+                    <div class="d-block">
+                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-clone"></i> Clone Schedules</a>
+                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-calendar-check"></i> Rosters</a>
+                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-magic"></i> Auto Schedule</a>
+                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-envelope-o"></i> Send Now</a>
+                    </div>
+                </div>
+
+                <!-- Mobile -->
+                <div class="panel-toolbar panel-toolbar-mobile d-flex d-md-none justify-content-between">
+                    <div class="d-block text-muted clickable" @click="onFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+
+                    <div class="d-flex">
+                        <div class="dropdown">
+                            <button class="btn btn-default btn-square btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-caret-down"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li>
+                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-envelope-o"></i> Send Now</button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-clone"></i> Clone Schedules</button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-calendar-check"></i> Rosters</button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-magic"></i> Auto Schedule</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <SchedulerFilters v-model:isVisible="isFiltersVisible"
+                      :appliedFilters="config.appliedFilters"
+                      @applyFilters="onApplyFilters" />
 </template>
 
 <script setup lang="ts">
-    import { ref } from "vue";
+    import { computed, ref } from "vue";
+    import SchedulerFilters from "./GroupScheduler/schedulerFilters.partial.obs";
+    import Alert from "@Obsidian/Controls/alert.obs";
+    import { getSecurityGrant, provideSecurityGrant, useConfigurationValues } from "@Obsidian/Utility/block";
+    import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
+    import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
+
+    const config = useConfigurationValues<GroupSchedulerInitializationBox>();
+
+    const securityGrant = getSecurityGrant(config.securityGrantToken);
+
+    // #region Values
+
+    const isFiltersVisible = ref(false);
+
+    // #endregion
+
+    // #region Computed Values
+
+    const blockErrorMessage = computed((): string | undefined | null => {
+        return config.errorMessage;
+    });
+
+    const filtersText = computed((): string => {
+        let groups = "All Groups";
+        let weeks = "Weeks: 2/5, 2/12";
+        let locations = "All Locations";
+        let schedules = "All Schedules";
+
+        return `Filters: ${groups} | ${weeks} | ${locations} | ${schedules}`;
+    });
+
+    // #endregion
+
+    // #region Event Handlers
+
+    function onFiltersClick(): void {
+        isFiltersVisible.value = true;
+    }
+
+    function onApplyFilters(filters: GroupSchedulerFiltersBag): void {
+        console.log(JSON.stringify(filters));
+    }
+
+    // #endregion
+
+    provideSecurityGrant(securityGrant);
 </script>

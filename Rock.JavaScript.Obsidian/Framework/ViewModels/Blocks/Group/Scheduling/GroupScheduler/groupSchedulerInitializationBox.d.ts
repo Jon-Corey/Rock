@@ -21,8 +21,22 @@
 // </copyright>
 //
 
+import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
+
 /** The box that contains all the initialization information for the Group Scheduler block. */
 export type GroupSchedulerInitializationBox = {
+    /** Gets or sets the applied filters, to limit what is shown on the scheduler. */
+    appliedFilters?: GroupSchedulerFiltersBag | null;
+
+    /** Gets or sets whether individuals may be selected from alternate groups. */
+    enableAlternateGroupIndividualSelection: boolean;
+
+    /** Gets or sets whether individuals may be selected from data views. */
+    enableDataViewIndividualSelection: boolean;
+
+    /** Gets or sets whether individuals may be selected from parent groups. */
+    enableParentGroupIndividualSelection: boolean;
+
     /**
      * Gets or sets the error message. A non-empty value indicates that
      * an error is preventing the block from being displayed.

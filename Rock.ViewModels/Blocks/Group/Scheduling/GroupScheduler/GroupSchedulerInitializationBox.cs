@@ -22,5 +22,33 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
     /// </summary>
     public class GroupSchedulerInitializationBox : BlockBox
     {
+        /// <summary>
+        /// Gets or sets the applied filters, to limit what is shown on the scheduler.
+        /// </summary>
+        public GroupSchedulerFiltersBag AppliedFilters { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether individuals may be selected from alternate groups.
+        /// </summary>
+        /// <value>
+        /// Whether individuals may be selected from alternate groups.
+        /// </value>
+        public bool EnableAlternateGroupIndividualSelection { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether individuals may be selected from parent groups.
+        /// </summary>
+        /// <value>
+        /// Whether individuals may be selected from parent groups.
+        /// </value>
+        public bool EnableParentGroupIndividualSelection { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether individuals may be selected from data views.
+        /// </summary>
+        /// <value>
+        /// Whether individuals may be selected from data views.
+        /// </value>
+        public bool EnableDataViewIndividualSelection { get; set; }
     }
 }

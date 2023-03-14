@@ -103,7 +103,17 @@ namespace Rock.Blocks.Group.Scheduling
         /// <param name="rockContext">The rock context.</param>
         private void SetBoxInitialState( GroupSchedulerInitializationBox box, RockContext rockContext )
         {
+            box.SecurityGrantToken = GetSecurityGrantToken();
+        }
 
+        /// <summary>
+        /// Gets the security grant token that will be used by UI controls on
+        /// this block to ensure they have the proper permissions.
+        /// </summary>
+        /// <returns>A string that represents the security grant token.</string>
+        private string GetSecurityGrantToken()
+        {
+            return new Rock.Security.SecurityGrant().ToToken();
         }
 
         #endregion
