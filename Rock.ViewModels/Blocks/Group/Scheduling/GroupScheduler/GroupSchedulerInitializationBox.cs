@@ -23,32 +23,27 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
     public class GroupSchedulerInitializationBox : BlockBox
     {
         /// <summary>
-        /// Gets or sets the applied filters, to limit what is shown on the scheduler.
-        /// </summary>
-        public GroupSchedulerFiltersBag AppliedFilters { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether individuals may be selected from alternate groups.
+        /// Gets or sets the filters to limit what is shown on the Group scheduler.
         /// </summary>
         /// <value>
-        /// Whether individuals may be selected from alternate groups.
+        /// The filters to limit what is shown on the Group scheduler.
         /// </value>
-        public bool EnableAlternateGroupIndividualSelection { get; set; }
+        public GroupSchedulerFiltersBag Filters { get; set; }
 
         /// <summary>
-        /// Gets or sets whether individuals may be selected from parent groups.
+        /// Gets or sets the resource settings to indicate how individuals should be selected for assignment.
         /// </summary>
         /// <value>
-        /// Whether individuals may be selected from parent groups.
+        /// The resource settings to indicate how individuals should be selected for assignment.
         /// </value>
-        public bool EnableParentGroupIndividualSelection { get; set; }
+        public GroupSchedulerResourceSettingsBag ResourceSettings { get; set; }
 
         /// <summary>
-        /// Gets or sets whether individuals may be selected from data views.
+        /// Gets or sets the clone settings to indicate how group schedules should be cloned.
         /// </summary>
         /// <value>
-        /// Whether individuals may be selected from data views.
+        /// The clone settings to indicate how group schedules should be cloned.
         /// </value>
-        public bool EnableDataViewIndividualSelection { get; set; }
+        public GroupSchedulerCloneSettingsBag CloneSettings { get; set; }
     }
 }

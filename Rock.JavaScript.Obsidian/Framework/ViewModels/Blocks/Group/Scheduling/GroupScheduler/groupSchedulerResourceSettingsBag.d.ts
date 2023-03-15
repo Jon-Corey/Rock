@@ -21,23 +21,17 @@
 // </copyright>
 //
 
-import { SlidingDateRangeBag } from "@Obsidian/ViewModels/Controls/slidingDateRangeBag";
-import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+import { GroupMemberMatchType } from "@Obsidian/Enums/Blocks/Group/Scheduling/groupMemberMatchType";
+import { ResourceListSourceType } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
 
-/** The filters to limit what is shown on the Group scheduler. */
-export type GroupSchedulerFiltersBag = {
-    /** Gets or sets the selected date range. */
-    dateRange?: SlidingDateRangeBag | null;
+/** The resource settings to indicate how individuals should be selected for assignment. */
+export type GroupSchedulerResourceSettingsBag = {
+    /** Gets or sets the enabled Rock.Enums.Blocks.Group.Scheduling.ResourceListSourceTypes, from which individuals may be scheduled. */
+    enabledResourceListSourceTypes?: ResourceListSourceType[] | null;
 
-    /** Gets or sets the end of week dates, based on the selected date range. */
-    endOfWeekDates?: string[] | null;
+    /** Gets or sets the selected Rock.Enums.Blocks.Group.Scheduling.GroupMemberMatchType. */
+    matchType: GroupMemberMatchType;
 
-    /** Gets or sets the selected groups. */
-    groups?: ListItemBag[] | null;
-
-    /** Gets or sets the selected locations. */
-    locations?: ListItemBag[] | null;
-
-    /** Gest or sets the selected schedules. */
-    schedules?: ListItemBag[] | null;
+    /** Gets or sets the selected Rock.Enums.Blocks.Group.Scheduling.ResourceListSourceType. */
+    sourceType: ResourceListSourceType;
 };

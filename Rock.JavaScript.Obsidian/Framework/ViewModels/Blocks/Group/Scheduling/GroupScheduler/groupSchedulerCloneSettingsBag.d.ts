@@ -21,23 +21,6 @@
 // </copyright>
 //
 
-import { SlidingDateRangeBag } from "@Obsidian/ViewModels/Controls/slidingDateRangeBag";
-import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
-
-/** The filters to limit what is shown on the Group scheduler. */
-export type GroupSchedulerFiltersBag = {
-    /** Gets or sets the selected date range. */
-    dateRange?: SlidingDateRangeBag | null;
-
-    /** Gets or sets the end of week dates, based on the selected date range. */
-    endOfWeekDates?: string[] | null;
-
-    /** Gets or sets the selected groups. */
-    groups?: ListItemBag[] | null;
-
-    /** Gets or sets the selected locations. */
-    locations?: ListItemBag[] | null;
-
-    /** Gest or sets the selected schedules. */
-    schedules?: ListItemBag[] | null;
+/** The clone settings to indicate how group schedules should be cloned. */
+export type GroupSchedulerCloneSettingsBag = {
 };

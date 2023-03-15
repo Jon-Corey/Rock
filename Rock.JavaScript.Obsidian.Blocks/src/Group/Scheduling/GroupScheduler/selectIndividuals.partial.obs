@@ -1,0 +1,150 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <Modal v-model="isVisible" title="Select Individuals" saveText="Assign" @save="onSave">
+
+        <Alert v-if="!resourceListSourceTypeItems.length" :alertType="AlertType.Warning">
+            No resource lists available for selection.
+        </Alert>
+
+        <div v-else>
+
+            <div v-if="resourceListSourceTypeItems.length > 1">
+                <!-- Desktop -->
+                <div class="d-none d-md-block">
+                    <ButtonGroup v-model="sourceType"
+                                 :items="resourceListSourceTypeItems" />
+                </div>
+
+                <!-- Mobile -->
+                <div class="d-md-none">
+                    <DropDownList v-model="sourceType"
+                                  :items="resourceListSourceTypeItems" />
+                </div>
+
+                <GroupPicker v-if="sourceTypeIsAlternateGroup"
+                             v-model="alternateGroup" />
+
+                <DataViewPicker v-if="sourceTypeIsDataView"
+                                v-model="dataView"
+                                :entityTypeGuid="EntityType.Person" />
+
+            </div>
+
+            <div v-if="sourceTypeIsGroup">
+                <!-- Desktop -->
+                <div class="d-none d-md-block">
+                    <ButtonGroup v-model="matchType"
+                                 :items="groupMemberMatchTypeItems"
+                                 :btnSize="BtnSize.ExtraSmall" />
+                </div>
+
+                <!-- Mobile -->
+                <div class="d-md-none">
+                    <DropDownList v-model="matchType"
+                                  :items="groupMemberMatchTypeItems" />
+                </div>
+            </div>
+
+        </div>
+
+    </Modal>
+</template>
+
+<script setup lang="ts">
+    import { computed, PropType, ref } from "vue";
+    import Alert from "@Obsidian/Controls/alert.obs";
+    import ButtonGroup from "@Obsidian/Controls/buttonGroup.obs";
+    import DataViewPicker from "@Obsidian/Controls/dataViewPicker";
+    import DropDownList from "@Obsidian/Controls/dropDownList";
+    import Modal from "@Obsidian/Controls/modal";
+    import GroupPicker from "@Obsidian/Controls/groupPicker";
+    import { GroupMemberMatchType, GroupMemberMatchTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/groupMemberMatchType";
+    import { ResourceListSourceType, ResourceListSourceTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
+    import { AlertType } from "@Obsidian/Enums/Controls/alertType";
+    import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
+    import { EntityType } from "@Obsidian/SystemGuids/entityType";
+    import { useVModelPassthrough } from "@Obsidian/Utility/component";
+    import { toNumber } from "@Obsidian/Utility/numberUtils";
+    import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
+    import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+
+    const props = defineProps({
+        isVisible: {
+            type: Boolean as PropType<boolean>,
+            required: true
+        },
+
+        resourceSettings: {
+            type: Object as PropType<GroupSchedulerResourceSettingsBag | null | undefined>,
+            required: true
+        }
+    });
+
+    const emit = defineEmits<{
+        (e: "update:isVisible"): void,
+        (e: "assignIndividuals", value: any): void
+    }>();
+
+    // #region Values
+
+    const isVisible = useVModelPassthrough(props, "isVisible", emit);
+
+    const sourceType = ref("0");
+    const matchType = ref("0");
+
+    const alternateGroup = ref<ListItemBag | null>(null);
+    const dataView = ref<ListItemBag | null>(null);
+
+    // #endregion
+
+    // #region Computed Values
+
+    const resourceListSourceTypeItems = computed((): { text: string, value: string }[] => {
+        return props.resourceSettings?.enabledResourceListSourceTypes?.map((value: ResourceListSourceType) => ({
+            text: ResourceListSourceTypeDescription[value],
+            value: value.toString()
+        })) ?? [];
+    });
+
+    const resourceListSourceType = computed((): ResourceListSourceType => {
+        return toNumber(sourceType.value) as ResourceListSourceType;
+    });
+
+    const sourceTypeIsGroup = computed((): boolean => {
+        return resourceListSourceType.value == ResourceListSourceType.Group;
+    });
+
+    const sourceTypeIsAlternateGroup = computed((): boolean => {
+        return resourceListSourceType.value === ResourceListSourceType.AlternateGroup;
+    });
+
+    const sourceTypeIsDataView = computed((): boolean => {
+        return resourceListSourceType.value == ResourceListSourceType.DataView;
+    });
+
+    const groupMemberMatchTypeItems = computed((): { text: string, value: string }[] => {
+        return Object.keys(GroupMemberMatchTypeDescription).map((key: string) => ({
+            text: GroupMemberMatchTypeDescription[key],
+            value: key
+        }));
+    });
+
+    const groupMemberMatchType = computed((): GroupMemberMatchType => {
+        return toNumber(matchType.value) as GroupMemberMatchType;
+    });
+
+    // #endregion
+
+    // #region Event Handlers
+
+    /**
+     * Handles the `save` event of the select individuals modal.
+     */
+    function onSave(): void {
+        emit("assignIndividuals", null);
+
+        isVisible.value = false;
+    }
+
+    // #endregion
+</script>

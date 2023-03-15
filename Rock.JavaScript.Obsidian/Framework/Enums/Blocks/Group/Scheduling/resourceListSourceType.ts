@@ -21,23 +21,31 @@
 // </copyright>
 //
 
-import { SlidingDateRangeBag } from "@Obsidian/ViewModels/Controls/slidingDateRangeBag";
-import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+/** The resource list source type options available in the Group Scheduler block. */
+export const ResourceListSourceType = {
+    /** The members of the selected group. */
+    Group: 0,
 
-/** The filters to limit what is shown on the Group scheduler. */
-export type GroupSchedulerFiltersBag = {
-    /** Gets or sets the selected date range. */
-    dateRange?: SlidingDateRangeBag | null;
+    /** The members of another group. */
+    AlternateGroup: 1,
 
-    /** Gets or sets the end of week dates, based on the selected date range. */
-    endOfWeekDates?: string[] | null;
+    /** The members of the parent group of the selected group. */
+    ParentGroup: 2,
 
-    /** Gets or sets the selected groups. */
-    groups?: ListItemBag[] | null;
+    /** The people that exist in a selected data view. */
+    DataView: 3
+} as const;
 
-    /** Gets or sets the selected locations. */
-    locations?: ListItemBag[] | null;
+/** The resource list source type options available in the Group Scheduler block. */
+export const ResourceListSourceTypeDescription: Record<number, string> = {
+    0: "Group",
 
-    /** Gest or sets the selected schedules. */
-    schedules?: ListItemBag[] | null;
+    1: "Alternate Group",
+
+    2: "Parent Group",
+
+    3: "Data View"
 };
+
+/** The resource list source type options available in the Group Scheduler block. */
+export type ResourceListSourceType = typeof ResourceListSourceType[keyof typeof ResourceListSourceType];

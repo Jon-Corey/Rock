@@ -14,19 +14,19 @@
             <div class="panel-collapsable">
                 <!-- Desktop -->
                 <div class="panel-toolbar d-none d-md-flex flex-wrap flex-sm-nowrap justify-content-between">
-                    <div class="d-block text-muted clickable" @click="onFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+                    <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
 
                     <div class="d-block">
-                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-clone"></i> Clone Schedules</a>
-                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-calendar-check"></i> Rosters</a>
-                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-magic"></i> Auto Schedule</a>
-                        <a href="#" class="btn btn-xs btn-default"><i class="fa fa-envelope-o"></i> Send Now</a>
+                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-clone"></i> Clone Schedules</RockButton>
+                        <RockButton :btnSize="BtnSize.ExtraSmall" @click="onSelectIndividualsClick"><i class="fa fa-calendar-check"></i> Rosters</RockButton>
+                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-magic"></i> Auto Schedule</RockButton>
+                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-envelope-o"></i> Send Now</RockButton>
                     </div>
                 </div>
 
                 <!-- Mobile -->
                 <div class="panel-toolbar panel-toolbar-mobile d-flex d-md-none justify-content-between">
-                    <div class="d-block text-muted clickable" @click="onFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+                    <RockButton :btnSize="BtnSize.Small" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> Filters</RockButton>
 
                     <div class="d-flex">
                         <div class="dropdown">
@@ -50,28 +50,37 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <SchedulerFilters v-model:isVisible="isFiltersVisible"
-                      :appliedFilters="config.appliedFilters"
-                      @applyFilters="onApplyFilters" />
+        <SelectFilters v-model:isVisible="isSelectFiltersVisible"
+                       :appliedFilters="config.filters"
+                       @applyFilters="onApplyFilters" />
+
+        <selectIndividuals v-model:isVisible="isSelectIndividualsVisible"
+                           :resourceSettings="config.resourceSettings"
+                           @assignIndividuals="onAssignIndividuals" />
+    </div>
 </template>
 
 <script setup lang="ts">
     import { computed, ref } from "vue";
-    import SchedulerFilters from "./GroupScheduler/schedulerFilters.partial.obs";
+    import SelectFilters from "./GroupScheduler/selectFilters.partial.obs";
+    import selectIndividuals from "./GroupScheduler/selectIndividuals.partial.obs";
     import Alert from "@Obsidian/Controls/alert.obs";
-    import { getSecurityGrant, provideSecurityGrant, useConfigurationValues } from "@Obsidian/Utility/block";
+    import RockButton from "@Obsidian/Controls/rockButton";
+    import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
+    import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useReloadBlock } from "@Obsidian/Utility/block";
     import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
 
     const config = useConfigurationValues<GroupSchedulerInitializationBox>();
 
     const securityGrant = getSecurityGrant(config.securityGrantToken);
+    const reloadBlock = useReloadBlock();
 
     // #region Values
 
-    const isFiltersVisible = ref(false);
+    const isSelectFiltersVisible = ref(false);
+    const isSelectIndividualsVisible = ref(false);
 
     // #endregion
 
@@ -94,15 +103,41 @@
 
     // #region Event Handlers
 
-    function onFiltersClick(): void {
-        isFiltersVisible.value = true;
+    /**
+     * Handles the click event of the "Filters..." elements, to show the `SelectFilters` component.
+     */
+    function onSelectFiltersClick(): void {
+        isSelectFiltersVisible.value = true;
     }
 
+    /**
+     * Handles the `applyFilters` event of the `SelectFilters` component.
+     *
+     * @param filters The selected filters.
+     */
     function onApplyFilters(filters: GroupSchedulerFiltersBag): void {
         console.log(JSON.stringify(filters));
+    }
+
+    /**
+     * Handles the click event of the "Add Individuals" buttons, to show the `SelectIndividuals` component.
+     */
+    function onSelectIndividualsClick(): void {
+        isSelectIndividualsVisible.value = true;
+    }
+
+    /**
+     * Handles the `assignIndividuals` event of the `SelectIndividuals` component.
+     *
+     * @param individuals The selected individuals.
+     */
+    function onAssignIndividuals(individuals: any): void {
+        console.log(JSON.stringify(individuals));
     }
 
     // #endregion
 
     provideSecurityGrant(securityGrant);
+
+    onConfigurationValuesChanged(reloadBlock);
 </script>

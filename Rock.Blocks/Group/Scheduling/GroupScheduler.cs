@@ -15,9 +15,11 @@
 // </copyright>
 //
 
+using System.Collections.Generic;
 using System.ComponentModel;
 using Rock.Attribute;
 using Rock.Data;
+using Rock.Enums.Blocks.Group.Scheduling;
 using Rock.Field.Types;
 using Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler;
 
@@ -103,7 +105,34 @@ namespace Rock.Blocks.Group.Scheduling
         /// <param name="rockContext">The rock context.</param>
         private void SetBoxInitialState( GroupSchedulerInitializationBox box, RockContext rockContext )
         {
+            box.EnabledResourceListSourceTypes = GetEnabledResourceListSourceTypes();
             box.SecurityGrantToken = GetSecurityGrantToken();
+        }
+
+        /// <summary>
+        /// Gets the enabled <see cref="ResourceListSourceType"/>s, from which individuals may be scheduled.
+        /// </summary>
+        /// <returns>The enabled <see cref="ResourceListSourceType"/>s, from which individuals may be scheduled.</returns>
+        private List<ResourceListSourceType> GetEnabledResourceListSourceTypes()
+        {
+            var enabledTypes = new List<ResourceListSourceType> { ResourceListSourceType.Group };
+
+            if ( GetAttributeValue( AttributeKey.EnableAlternateGroupIndividualSelection ).AsBoolean() )
+            {
+                enabledTypes.Add( ResourceListSourceType.AlternateGroup );
+            }
+
+            if ( GetAttributeValue( AttributeKey.EnableParentGroupIndividualSelection ).AsBoolean() )
+            {
+                enabledTypes.Add( ResourceListSourceType.ParentGroup );
+            }
+
+            if ( GetAttributeValue( AttributeKey.EnableDataViewIndividualSelection ).AsBoolean() )
+            {
+                enabledTypes.Add( ResourceListSourceType.DataView );
+            }
+
+            return enabledTypes;
         }
 
         /// <summary>

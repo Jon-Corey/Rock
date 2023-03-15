@@ -60,8 +60,10 @@
     <Compile Include="Blocks\Group\GroupAttendanceDetail\GroupAttendanceDetailMarkAttendanceRequestBag.cs" />
     <Compile Include="Blocks\Group\GroupAttendanceDetail\GroupAttendanceDetailAttendanceBag.cs" />
     <Compile Include="Blocks\Group\GroupAttendanceDetail\GroupAttendanceDetailInitializationBox.cs" />
+    <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerCloneSettingsBag.cs" />
     <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerFiltersBag.cs" />
     <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerInitializationBox.cs" />
+    <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerResourceSettingsBag.cs" />
     <Compile Include="Blocks\Security\AccountEntry\AccountEntryAccountInfoBag.cs" />
     <Compile Include="Blocks\Security\AccountEntry\AccountEntryCompletedStepBag.cs" />
     <Compile Include="Blocks\Security\AccountEntry\AccountEntryConfirmationSentStepBag.cs" />

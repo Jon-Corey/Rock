@@ -1,7 +1,9 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <Modal v-model="isVisible" title="Filters" saveText="Select" @save="onSave">
-        Select the filter options below to limit what is shown on the group scheduler.
+    <Modal v-model="isVisible" title="Filters" saveText="Apply" @save="onSave">
+        <Alert :alertType="AlertType.Info">
+            Please select the filter options below to limit what is shown on the group scheduler.
+        </Alert>
 
         <GroupPicker v-model="groups"
                      label="Groups"
@@ -24,15 +26,18 @@
 
 <script setup lang="ts">
     import { PropType, ref } from "vue";
-    import Modal from "@Obsidian/Controls/modal";
+    import Alert from "@Obsidian/Controls/alert.obs";
     import GroupPicker from "@Obsidian/Controls/groupPicker";
+    import Modal from "@Obsidian/Controls/modal";
     import LocationItemPicker from "@Obsidian/Controls/locationItemPicker";
     import SchedulePicker from "@Obsidian/Controls/schedulePicker";
     import SlidingDateRangePicker from "@Obsidian/Controls/slidingDateRangePicker";
+    import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { useVModelPassthrough } from "@Obsidian/Utility/component";
-    import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
-    import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { SlidingDateRange } from "@Obsidian/Utility/slidingDateRange";
+    import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
+    import { SlidingDateRangeBag } from "@Obsidian/ViewModels/Controls/slidingDateRangeBag";
+    import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const props = defineProps({
         isVisible: {
@@ -58,18 +63,29 @@
     const groups = ref<ListItemBag[]>(props.appliedFilters?.groups ?? []);
     const locations = ref<ListItemBag[]>(props.appliedFilters?.locations ?? []);
     const schedules = ref<ListItemBag[]>(props.appliedFilters?.schedules ?? []);
-
-    const slidingDateRange = ref<SlidingDateRange | null>(null);
+    const slidingDateRange = ref<SlidingDateRange | null>(
+        props.appliedFilters?.dateRange
+            ? props.appliedFilters.dateRange as SlidingDateRange
+            : null
+    );
 
     // #endregion
 
     // #region Event Handlers
 
+    /**
+     * Handles the `save` event of the select filters modal.
+     */
     function onSave(): void {
+        const dateRange: SlidingDateRangeBag | null = slidingDateRange.value
+            ? slidingDateRange.value as SlidingDateRangeBag
+            : null;
+
         const filters: GroupSchedulerFiltersBag = {
             groups: groups.value,
             locations: locations.value,
-            schedules: schedules.value
+            schedules: schedules.value,
+            dateRange
         };
 
         emit("applyFilters", filters);

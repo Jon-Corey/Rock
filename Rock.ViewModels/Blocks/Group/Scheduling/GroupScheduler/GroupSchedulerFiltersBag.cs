@@ -23,7 +23,7 @@ using Rock.ViewModels.Utility;
 namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
 {
     /// <summary>
-    /// The currently-applied filters, to limit what is shown on the Group scheduler.
+    /// The filters to limit what is shown on the Group scheduler.
     /// </summary>
     public class GroupSchedulerFiltersBag
     {
