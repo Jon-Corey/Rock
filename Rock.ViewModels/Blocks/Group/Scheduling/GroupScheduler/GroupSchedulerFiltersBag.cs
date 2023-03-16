@@ -36,20 +36,20 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         public List<ListItemBag> Groups { get; set; }
 
         /// <summary>
-        /// Gets or sets the selected locations.
+        /// Gets or sets the available and selected locations.
         /// </summary>
         /// <value>
-        /// The selected locations.
+        /// The available and selected locations.
         /// </value>
-        public List<ListItemBag> Locations { get; set; }
+        public GroupSchedulerLocationsBag Locations { get; set; }
 
         /// <summary>
-        /// Gest or sets the selected schedules.
+        /// Gets or sets the available and selected schedules.
         /// </summary>
-        /// <value>
-        /// The selected schedules.
-        /// </value>
-        public List<ListItemBag> Schedules { get; set; }
+        /// <values>
+        /// The available and selected schedules.
+        /// </values>
+        public GroupSchedulerSchedulesBag Schedules { get; set; }
 
         /// <summary>
         /// Gets or sets the selected date range.
@@ -60,11 +60,27 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         public SlidingDateRangeBag DateRange { get; set; }
 
         /// <summary>
-        /// Gets or sets the end of week dates, based on the selected date range.
+        /// Gets or sets the first "end of week" date, based on the selected date range.
         /// </summary>
         /// <value>
-        /// The end of week dates, based on the selected date range.
+        /// The first "end of week" date, based on the selected date range.
         /// </value>
-        public List<DateTime> EndOfWeekDates { get; set; }
+        public DateTime? FirstEndOfWeekDate { get; set; }
+
+        /// <summary>
+        /// Gets or sets the last "end of week" date, based on the selected date range.
+        /// </summary>
+        /// <value>
+        /// The last "end of week" date, based on the selected date range.
+        /// </value>
+        public DateTime? LastEndOfWeekDate { get; set; }
+
+        /// <summary>
+        /// Gets or sets the friendly date range, based on the selected date range.
+        /// </summary>
+        /// <value>
+        /// The friendly date range, based on the selected date range.
+        /// </value>
+        public string FriendlyDateRange { get; set; }
     }
 }

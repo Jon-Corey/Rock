@@ -15,13 +15,21 @@
 // </copyright>
 //
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Entity;
+using System.Linq;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Enums.Blocks.Group.Scheduling;
+using Rock.Enums.Controls;
 using Rock.Field.Types;
+using Rock.Model;
+using Rock.Security;
 using Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler;
+using Rock.ViewModels.Controls;
+using Rock.ViewModels.Utility;
 
 namespace Rock.Blocks.Group.Scheduling
 {
@@ -77,6 +85,14 @@ namespace Rock.Blocks.Group.Scheduling
 
         #endregion
 
+        #region Fields
+
+        private List<Rock.Model.Group> _groups;
+        private List<Rock.Model.GroupLocation> _groupLocations;
+        private List<Rock.Model.Schedule> _schedules;
+
+        #endregion
+
         #region Properties
 
         public override string BlockFileUrl => $"{base.BlockFileUrl}.obs";
@@ -105,14 +121,251 @@ namespace Rock.Blocks.Group.Scheduling
         /// <param name="rockContext">The rock context.</param>
         private void SetBoxInitialState( GroupSchedulerInitializationBox box, RockContext rockContext )
         {
-            box.EnabledResourceListSourceTypes = GetEnabledResourceListSourceTypes();
+            var block = new BlockService( rockContext ).Get( this.BlockId );
+            block.LoadAttributes( rockContext );
+
+            var filters = GetFilters( rockContext );
+
+            box.Filters = filters;
+            box.ScheduleOccurrences = GetScheduleOccurrences( rockContext, filters );
+            box.ResourceSettings = GetResourceSettings();
+            box.CloneSettings = GetCloneSettings();
             box.SecurityGrantToken = GetSecurityGrantToken();
         }
 
         /// <summary>
-        /// Gets the enabled <see cref="ResourceListSourceType"/>s, from which individuals may be scheduled.
+        /// Gets the filters, overriding any defaults with user preferences.
         /// </summary>
-        /// <returns>The enabled <see cref="ResourceListSourceType"/>s, from which individuals may be scheduled.</returns>
+        /// <param name="rockContext">The rock context.</param>
+        /// <returns>The filters.</returns>
+        private GroupSchedulerFiltersBag GetFilters( RockContext rockContext )
+        {
+            var filters = new GroupSchedulerFiltersBag();
+
+            // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
+
+            ValidateFilters( rockContext, filters );
+
+            return filters;
+        }
+
+        /// <summary>
+        /// Validates the filters, overriding any selections if necessary.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="filters">The filters that should be validated.</param>
+        private void ValidateFilters( RockContext rockContext, GroupSchedulerFiltersBag filters )
+        {
+            ValidateDateRange( filters );
+            GetAuthorizedGroups( rockContext, filters );
+            UpdateLocations( rockContext, filters );
+            UpdateSchedules( rockContext, filters );
+        }
+
+        /// <summary>
+        /// Validates the date range and sets the first and last "end of week" dates (as well as the friendly date range) on the provided filters.
+        /// <para>
+        /// If the date range is invalid or in the past, the current "end of week" date will be used to set all date values.
+        /// </para>
+        /// </summary>
+        /// <param name="filters">The filters whose date range should be validated.</param>
+        private void ValidateDateRange( GroupSchedulerFiltersBag filters )
+        {
+            var thisEndOfWeekDate = RockDateTime.Now.EndOfWeek( RockDateTime.FirstDayOfWeek ).Date;
+            var adjustPicker = false;
+
+            DateTime? firstEndOfWeekDate = null;
+            var startDate = filters.DateRange?.LowerDate?.Date;
+            if ( startDate.HasValue )
+            {
+                firstEndOfWeekDate = startDate.Value.EndOfWeek( RockDateTime.FirstDayOfWeek );
+            }
+            else
+            {
+                firstEndOfWeekDate = thisEndOfWeekDate;
+                adjustPicker = true;
+            }
+
+            DateTime? lastEndOfWeekDate = null;
+            var endDate = filters.DateRange?.UpperDate?.Date;
+            if ( endDate.HasValue )
+            {
+                lastEndOfWeekDate = endDate.Value.EndOfWeek( RockDateTime.FirstDayOfWeek );
+            }
+            else
+            {
+                lastEndOfWeekDate = thisEndOfWeekDate;
+                adjustPicker = true;
+            }
+
+            // Make sure we have a date range that makes sense.
+            if ( lastEndOfWeekDate < firstEndOfWeekDate )
+            {
+                lastEndOfWeekDate = firstEndOfWeekDate;
+                adjustPicker = true;
+            }
+
+            // Default to the current week if either a start or end date weren't provided or are in the past.
+            if ( firstEndOfWeekDate.Value < thisEndOfWeekDate || lastEndOfWeekDate.Value < thisEndOfWeekDate )
+            {
+                firstEndOfWeekDate = thisEndOfWeekDate;
+                lastEndOfWeekDate = thisEndOfWeekDate;
+
+                adjustPicker = true;
+            }
+
+            var format = "M/d";
+            string friendlyDateRange = null;
+
+            // This doesn't need to be precise; just need to determine if we should try to list all "end of week" dates or just a range.
+            var numberOfWeeks = ( lastEndOfWeekDate.Value - firstEndOfWeekDate.Value ).TotalDays / 7;
+            if ( numberOfWeeks > 7 )
+            {
+                friendlyDateRange = $"{firstEndOfWeekDate.Value.ToString( format )} - {lastEndOfWeekDate.Value.ToString( format )}";
+            }
+            else
+            {
+                var endOfWeekDate = firstEndOfWeekDate.Value;
+                var endOfWeekDates = new List<DateTime>();
+                while ( endOfWeekDate <= lastEndOfWeekDate.Value )
+                {
+                    endOfWeekDates.Add( endOfWeekDate );
+
+                    endOfWeekDate = endOfWeekDate.AddDays( 7 );
+                }
+
+                friendlyDateRange = string.Join( ", ", endOfWeekDates.Select( d => d.ToString( format ) ) );
+            }
+
+            filters.FirstEndOfWeekDate = firstEndOfWeekDate;
+            filters.LastEndOfWeekDate = lastEndOfWeekDate;
+            filters.FriendlyDateRange = friendlyDateRange;
+
+            if ( adjustPicker )
+            {
+                // If we made any adjustments above, adjust the UI's sliding date range picker to match.
+                filters.DateRange = new SlidingDateRangeBag
+                {
+                    LowerDate = firstEndOfWeekDate.Value.AddDays( -6 ),
+                    UpperDate = lastEndOfWeekDate.Value,
+                    RangeType = SlidingDateRangeType.DateRange
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets the authorized groups from those selected within the filters, ensuring the current person has EDIT or SCHEDULE permission.
+        /// <para>
+        /// The groups will be updated on the filters object to include only those that are authorized.
+        /// </para>
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="filters">The filters whose groups should be loaded and validated.</param>
+        private void GetAuthorizedGroups( RockContext rockContext, GroupSchedulerFiltersBag filters )
+        {
+            if ( filters.Groups?.Any() != true )
+            {
+                return;
+            }
+
+            var groupGuids = filters.Groups
+                .Select( g => g.Value.AsGuidOrNull() )
+                .Where( g => g.HasValue )
+                .Select( g => g.Value )
+                .ToList();
+
+            if ( !groupGuids.Any() )
+            {
+                filters.Groups = null;
+                return;
+            }
+
+            // Get the selected groups and preload ParentGroup, as it's needed for a proper Authorization check.
+            var currentPerson = RequestContext.CurrentPerson;
+            _groups = new GroupService( rockContext )
+                .GetByGuids( groupGuids )
+                .Include( g => g.ParentGroup )
+                .AsNoTracking()
+                .ToList();
+
+            // Ensure the current user has the correct permission(s) to schedule the selected groups and update the filters if necessary.
+            _groups = _groups
+                .Where( g =>
+                    g.IsAuthorized( Authorization.EDIT, this.RequestContext.CurrentPerson )
+                    || g.IsAuthorized( Authorization.SCHEDULE, this.RequestContext.CurrentPerson )
+                )
+                .ToList();
+
+            filters.Groups = _groups
+                .Select( g => new ListItemBag
+                {
+                    Value = g.Guid.ToString(),
+                    Text = g.Name
+                } )
+                .ToList();
+        }
+
+        /// <summary>
+        /// Updates the locations on the filters object to reflect the groups selected within the filters.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="filters">The filters whose locations should be updated.</param>
+        private void UpdateLocations( RockContext rockContext, GroupSchedulerFiltersBag filters )
+        {
+            if ( _groups?.Any() != true )
+            {
+                filters.Locations = null;
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Updates the schedules on the filters object to reflect the groups, locations and date range selected within the filters.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="filters">The filters whose schedules should be updated.</param>
+        private void UpdateSchedules( RockContext rockContext, GroupSchedulerFiltersBag filters )
+        {
+            if ( _groupLocations?.Any() != true )
+            {
+                filters.Schedules = null;
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Gets the list of [group, location, schedule] occurrences, based on the currently-applied filters.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="filters">The currently-applied filters.</param>
+        /// <returns>The list of [group, location, schedule] occurrences.</returns>
+        private List<GroupSchedulerOccurrenceBag> GetScheduleOccurrences( RockContext rockContext, GroupSchedulerFiltersBag filters )
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the resource settings, overriding any defaults with user preferences.
+        /// </summary>
+        /// <returns>The resource settings.</returns>
+        private GroupSchedulerResourceSettingsBag GetResourceSettings()
+        {
+            var enabledResourceListSourceTypes = GetEnabledResourceListSourceTypes();
+
+            // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
+
+            return new GroupSchedulerResourceSettingsBag
+            {
+                EnabledResourceListSourceTypes = enabledResourceListSourceTypes,
+                SourceType = enabledResourceListSourceTypes.FirstOrDefault(),
+                MatchType = default
+            };
+        }
+
+        /// <summary>
+        /// Gets the enabled resource list source types from which individuals may be scheduled.
+        /// </summary>
+        /// <returns>The enabled resource list source types.</returns>
         private List<ResourceListSourceType> GetEnabledResourceListSourceTypes()
         {
             var enabledTypes = new List<ResourceListSourceType> { ResourceListSourceType.Group };
@@ -136,10 +389,20 @@ namespace Rock.Blocks.Group.Scheduling
         }
 
         /// <summary>
-        /// Gets the security grant token that will be used by UI controls on
-        /// this block to ensure they have the proper permissions.
+        /// Gets the clone settings, overriding any defaults with user preferences.
         /// </summary>
-        /// <returns>A string that represents the security grant token.</string>
+        /// <returns>The clone settings.</returns>
+        private GroupSchedulerCloneSettingsBag GetCloneSettings()
+        {
+            // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
+
+            return new GroupSchedulerCloneSettingsBag();
+        }
+
+        /// <summary>
+        /// Gets the security grant token that will be used by UI controls on this block to ensure they have the proper permissions.
+        /// </summary>
+        /// <returns>A string that represents the security grant token.</returns>
         private string GetSecurityGrantToken()
         {
             return new Rock.Security.SecurityGrant().ToToken();
@@ -149,7 +412,43 @@ namespace Rock.Blocks.Group.Scheduling
 
         #region Block Actions
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bag"></param>
+        /// <returns></returns>
+        [BlockAction]
+        public BlockActionResult UpdateFilters( GroupSchedulerFiltersBag bag )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                ValidateFilters( rockContext, bag );
 
+                return ActionOk( bag );
+            }
+        }
+
+        /// <summary>
+        /// Validates and applies the provided filters, then returns the new list of [group, location, schedule] occurrences, based on the applied filters.
+        /// </summary>
+        /// <param name="bag">The filters to apply.</param>
+        /// <returns>An object containing the validated filters and new list of filtered [group, location, schedule] occurrences.</returns>
+        [BlockAction]
+        public BlockActionResult ApplyFilters( GroupSchedulerFiltersBag bag )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                ValidateFilters( rockContext, bag );
+
+                var results = new GroupSchedulerAppliedFiltersBag
+                {
+                    AppliedFilters = bag,
+                    ScheduleOccurrences = GetScheduleOccurrences( rockContext, bag )
+                };
+
+                return ActionOk( results );
+            }
+        }
 
         #endregion
     }

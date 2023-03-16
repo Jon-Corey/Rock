@@ -21,6 +21,8 @@
 // </copyright>
 //
 
+import { GroupSchedulerLocationsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerLocationsBag";
+import { GroupSchedulerSchedulesBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerSchedulesBag";
 import { SlidingDateRangeBag } from "@Obsidian/ViewModels/Controls/slidingDateRangeBag";
 import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
@@ -29,15 +31,21 @@ export type GroupSchedulerFiltersBag = {
     /** Gets or sets the selected date range. */
     dateRange?: SlidingDateRangeBag | null;
 
-    /** Gets or sets the end of week dates, based on the selected date range. */
-    endOfWeekDates?: string[] | null;
+    /** Gets or sets the first "end of week" date, based on the selected date range. */
+    firstEndOfWeekDate?: string | null;
+
+    /** Gets or sets the friendly date range, based on the selected date range. */
+    friendlyDateRange?: string | null;
 
     /** Gets or sets the selected groups. */
     groups?: ListItemBag[] | null;
 
-    /** Gets or sets the selected locations. */
-    locations?: ListItemBag[] | null;
+    /** Gets or sets the last "end of week" date, based on the selected date range. */
+    lastEndOfWeekDate?: string | null;
 
-    /** Gest or sets the selected schedules. */
-    schedules?: ListItemBag[] | null;
+    /** Gets or sets the available and selected locations. */
+    locations?: GroupSchedulerLocationsBag | null;
+
+    /** Gets or sets the available and selected schedules. */
+    schedules?: GroupSchedulerSchedulesBag | null;
 };

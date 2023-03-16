@@ -1,6 +1,6 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <Alert v-if="blockErrorMessage" alertType="warning">
+    <Alert v-if="blockErrorMessage" :alertType="AlertType.Warning">
         {{ blockErrorMessage }}
     </Alert>
 
@@ -14,7 +14,7 @@
             <div class="panel-collapsable">
                 <!-- Desktop -->
                 <div class="panel-toolbar d-none d-md-flex flex-wrap flex-sm-nowrap justify-content-between">
-                    <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+                    <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ appliedFiltersText }}</div>
 
                     <div class="d-block">
                         <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-clone"></i> Clone Schedules</RockButton>
@@ -39,7 +39,7 @@
                                     <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-clone"></i> Clone Schedules</button>
                                 </li>
                                 <li>
-                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-calendar-check"></i> Rosters</button>
+                                    <button type="button" class="dropdown-item btn-link text-nowrap" @click="onSelectIndividualsClick"><i class="fa fa-calendar-check"></i> Rosters</button>
                                 </li>
                                 <li>
                                     <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-magic"></i> Auto Schedule</button>
@@ -49,14 +49,31 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Body -->
+            <div class="panel-body p-0">
+
+                <Alert v-if="warningMessage" :alertType="AlertType.Warning">
+                    {{ warningMessage }}
+                </Alert>
+
+                <Alert v-if="showSelectGroupMessage" :alertType="AlertType.Info">
+                    Please select at least one group.
+                </Alert>
+
+                <div class="snap-container">
+                    Schedule occurrences go here...
+                </div>
+
+            </div>
         </div>
 
         <SelectFilters v-model:isVisible="isSelectFiltersVisible"
-                       :appliedFilters="config.filters"
+                       :appliedFilters="filters"
                        @applyFilters="onApplyFilters" />
 
         <selectIndividuals v-model:isVisible="isSelectIndividualsVisible"
-                           :resourceSettings="config.resourceSettings"
+                           :resourceSettings="resourceSettings"
                            @assignIndividuals="onAssignIndividuals" />
     </div>
 </template>
@@ -67,20 +84,33 @@
     import selectIndividuals from "./GroupScheduler/selectIndividuals.partial.obs";
     import Alert from "@Obsidian/Controls/alert.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
+    import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
-    import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useReloadBlock } from "@Obsidian/Utility/block";
+    import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useInvokeBlockAction, useReloadBlock } from "@Obsidian/Utility/block";
+    import { AppliedFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/appliedFiltersBag";
+    import { GroupSchedulerCloneSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerCloneSettingsBag";
     import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
+    import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
 
     const config = useConfigurationValues<GroupSchedulerInitializationBox>();
 
     const securityGrant = getSecurityGrant(config.securityGrantToken);
+    const invokeBlockAction = useInvokeBlockAction();
     const reloadBlock = useReloadBlock();
 
     // #region Values
 
+    const isApplyingFilters = ref(false);
+    const warningMessage = ref("");
+
+    const filters = ref<GroupSchedulerFiltersBag>(config.filters ?? {});
+    const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null | undefined>(config.resourceSettings);
+    const cloneSettings = ref<GroupSchedulerCloneSettingsBag | null | undefined>(config.cloneSettings);
+
     const isSelectFiltersVisible = ref(false);
     const isSelectIndividualsVisible = ref(false);
+    const isCloneSchedulesVisible = ref(false);
 
     // #endregion
 
@@ -90,13 +120,34 @@
         return config.errorMessage;
     });
 
-    const filtersText = computed((): string => {
-        let groups = "All Groups";
-        let weeks = "Weeks: 2/5, 2/12";
-        let locations = "All Locations";
-        let schedules = "All Schedules";
+    const showSelectGroupMessage = computed((): boolean => {
+        return !filters.value?.groups?.length;
+    });
 
-        return `Filters: ${groups} | ${weeks} | ${locations} | ${schedules}`;
+    const appliedFiltersText = computed((): string => {
+        const appliedFilters = filters.value;
+
+        function getSingleValueOrCount(items: string[] | null | undefined, label: string): string {
+            if (items?.length) {
+                if (items.length === 1 && items[0]) {
+                    return items[0];
+                }
+
+                label = items.length === 1 ? label : `${label}s`;
+                return `${items.length} ${label}`;
+            }
+
+            return `All ${label}s`;
+        }
+
+        const filtersTextSegements: string[] = [
+            appliedFilters?.groups?.length ? appliedFilters.groups.map(g => g.text).join(", ") : "",
+            appliedFilters?.friendlyDateRange ? `Weeks: ${appliedFilters.friendlyDateRange}` : "",
+            getSingleValueOrCount(appliedFilters?.locations?.selectedLocations, "Location"),
+            getSingleValueOrCount(appliedFilters?.schedules?.selectedSchedules, "Schedule")
+        ];
+
+        return ` Filters: ${filtersTextSegements.filter(s => s).join(" | ")}`;
     });
 
     // #endregion
@@ -113,10 +164,21 @@
     /**
      * Handles the `applyFilters` event of the `SelectFilters` component.
      *
-     * @param filters The selected filters.
+     * @param bag The filters to apply.
      */
-    function onApplyFilters(filters: GroupSchedulerFiltersBag): void {
-        console.log(JSON.stringify(filters));
+    async function onApplyFilters(bag: GroupSchedulerFiltersBag): Promise<void> {
+        isApplyingFilters.value = true;
+        warningMessage.value = "";
+
+        const result = await invokeBlockAction<AppliedFiltersBag>("ApplyFilters", { bag });
+        isApplyingFilters.value = false;
+
+        if (!result.isSuccess) {
+            warningMessage.value = result.errorMessage || "Unknown error while trying to apply filters.";
+            return;
+        }
+
+        filters.value = result.data?.appliedFilters ?? {};
     }
 
     /**
@@ -129,7 +191,7 @@
     /**
      * Handles the `assignIndividuals` event of the `SelectIndividuals` component.
      *
-     * @param individuals The selected individuals.
+     * @param individuals The individuals to assign.
      */
     function onAssignIndividuals(individuals: any): void {
         console.log(JSON.stringify(individuals));

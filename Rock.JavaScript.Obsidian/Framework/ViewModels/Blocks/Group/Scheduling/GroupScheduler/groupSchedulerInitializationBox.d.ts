@@ -23,11 +23,12 @@
 
 import { GroupSchedulerCloneSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerCloneSettingsBag";
 import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
+import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
 import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
 
 /** The box that contains all the initialization information for the Group Scheduler block. */
 export type GroupSchedulerInitializationBox = {
-    /** Gets or sets the clone settings to indicate how group schedules should be cloned. */
+    /** Gets or sets the clone settings to indicate how schedules should be cloned. */
     cloneSettings?: GroupSchedulerCloneSettingsBag | null;
 
     /**
@@ -44,6 +45,9 @@ export type GroupSchedulerInitializationBox = {
 
     /** Gets or sets the resource settings to indicate how individuals should be selected for assignment. */
     resourceSettings?: GroupSchedulerResourceSettingsBag | null;
+
+    /** Gets or sets the [group, location, schedule] occurrences to be scheduled. */
+    scheduleOccurrences?: GroupSchedulerOccurrenceBag[] | null;
 
     /** Gets or sets the security grant token. */
     securityGrantToken?: string | null;

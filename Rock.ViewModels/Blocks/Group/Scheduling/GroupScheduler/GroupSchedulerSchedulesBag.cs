@@ -15,12 +15,30 @@
 // </copyright>
 //
 
+using System.Collections.Generic;
+using Rock.ViewModels.Utility;
+
 namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
 {
     /// <summary>
-    /// The clone settings to indicate how group schedules should be cloned.
+    /// The available and selected schedules for the Group Scheduler.
     /// </summary>
-    public class GroupSchedulerCloneSettingsBag
+    public class GroupSchedulerSchedulesBag
     {
+        /// <summary>
+        /// Gets or sets the available schedules.
+        /// </summary>
+        /// <value>
+        /// The available schedules.
+        /// </value>
+        public List<ListItemBag> AvailableSchedules { get; set; }
+
+        /// <summary>
+        /// Gets or sets the selected schedules.
+        /// </summary>
+        /// <value>
+        /// The selected schedules.
+        /// </value>
+        public List<string> SelectedSchedules { get; set; }
     }
 }

@@ -15,6 +15,8 @@
 // </copyright>
 //
 
+using System.Collections.Generic;
+
 namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
 {
     /// <summary>
@@ -31,6 +33,14 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         public GroupSchedulerFiltersBag Filters { get; set; }
 
         /// <summary>
+        /// Gets or sets the [group, location, schedule] occurrences to be scheduled.
+        /// </summary>
+        /// <value>
+        /// The [group, location, schedule] occurrences to be scheduled.
+        ///</value>
+        public List<GroupSchedulerOccurrenceBag> ScheduleOccurrences { get; set; }
+
+        /// <summary>
         /// Gets or sets the resource settings to indicate how individuals should be selected for assignment.
         /// </summary>
         /// <value>
@@ -39,10 +49,10 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         public GroupSchedulerResourceSettingsBag ResourceSettings { get; set; }
 
         /// <summary>
-        /// Gets or sets the clone settings to indicate how group schedules should be cloned.
+        /// Gets or sets the clone settings to indicate how schedules should be cloned.
         /// </summary>
         /// <value>
-        /// The clone settings to indicate how group schedules should be cloned.
+        /// The clone settings to indicate how schedules should be cloned.
         /// </value>
         public GroupSchedulerCloneSettingsBag CloneSettings { get; set; }
     }

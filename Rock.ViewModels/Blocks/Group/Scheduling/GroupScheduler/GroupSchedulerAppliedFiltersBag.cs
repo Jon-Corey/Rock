@@ -15,12 +15,29 @@
 // </copyright>
 //
 
+using System.Collections.Generic;
+
 namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
 {
     /// <summary>
-    /// The clone settings to indicate how group schedules should be cloned.
+    /// The filters that were applied in response to an "ApplyFilters" request, and the resulting occurrences to be scheduled.
     /// </summary>
-    public class GroupSchedulerCloneSettingsBag
+    public class GroupSchedulerAppliedFiltersBag
     {
+        /// <summary>
+        /// Gets or sets the filters that were applied.
+        /// </summary>
+        /// <value>
+        /// The filters that were applied.
+        /// </value>
+        public GroupSchedulerFiltersBag AppliedFilters { get; set; }
+
+        /// <summary>
+        /// Gets or sets the occurrences to be scheduled.
+        /// </summary>
+        /// <value>
+        /// The occurrences to be scheduled.
+        ///</value>
+        public List<GroupSchedulerOccurrenceBag> ScheduleOccurrences { get; set; }
     }
 }
