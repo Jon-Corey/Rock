@@ -1,6 +1,6 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <NotificationBox v-if="blockErrorMessage" alertType="warning">
+    <NotificationBox v-if="blockErrorMessage" :alertType="AlertType.Warning">
         {{ blockErrorMessage }}
     </NotificationBox>
 
@@ -10,6 +10,7 @@
 <script setup lang="ts">
     import { computed, onMounted, ref } from "vue";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
+    import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { SignUpDetailInitializationBox } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpDetail/signUpDetailInitializationBox";
     import { onConfigurationValuesChanged, useConfigurationValues, useReloadBlock } from "@Obsidian/Utility/block";
 
