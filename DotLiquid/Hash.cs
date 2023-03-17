@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -28,10 +28,16 @@ namespace DotLiquid
 
 		public static Hash FromDictionary(IDictionary<string, object> dictionary)
 		{
-			Hash result = new Hash();
-			foreach (var keyValue in dictionary)
-				result.Add(keyValue);
-			return result;
+            Hash result = new Hash();
+            foreach ( var keyValue in dictionary )
+            {
+                if ( result.ContainsKey( keyValue.Key ) )
+                {
+                    throw new Exception( $"Duplicate Key in source dictionary. [Key={keyValue.Key}, DictionaryType={dictionary.GetType().FullName}" );
+                }
+                result.Add( keyValue );
+            }
+            return result;
 		}
 
 		#endregion
