@@ -330,6 +330,14 @@ namespace Rock.Model
                     DatabaseTimeoutSeconds = databaseTimeoutSeconds,
                 };
 
+                var log = new RockProcessLogger
+                {
+                    LogDomain = RockLogDomains.Reporting,
+                    DefaultTopic = $"DataViewPersistResult:{this.Name}"
+                };
+
+                log.Write( $"Retrieving query results... [Timeout={databaseTimeoutSeconds}s]" );
+
                 var qry = this.GetQuery( dataViewGetQueryArgs );
 
                 rockContext.Database.CommandTimeout = databaseTimeoutSeconds;
@@ -337,8 +345,17 @@ namespace Rock.Model
 
                 var updatedEntityIdsQry = qry.Select( a => a.Id );
 
+                if ( !( rockContext is RockContext ) )
+                {
+                    log.Write( $"Materializing query results..." );
+
+                    // if this DataView doesn't use a RockContext get the EntityIds into memory as a List<int> then back into IQueryable<int> so that we aren't use multiple dbContexts
+                    updatedEntityIdsQry = updatedEntityIdsQry.ToList().AsQueryable();
+                }
+
+                log.Write( $"Querying for values to remove..." );
+
                 var persistedValuesToRemove = savedDataViewPersistedValues.Where( a => !updatedEntityIdsQry.Any( x => x == a.EntityId ) );
-                var persistedEntityIdsToInsert = updatedEntityIdsQry.Where( x => !savedDataViewPersistedValues.Any( a => a.EntityId == x ) ).ToList();
 
                 var removeCount = persistedValuesToRemove.Count();
                 if ( removeCount > 0 )
@@ -346,11 +363,15 @@ namespace Rock.Model
                     // increase the batch size if there are a bunch of rows (and this is a narrow table with no references to it)
                     int? deleteBatchSize = removeCount > 50000 ? 25000 : ( int? ) null;
 
+                    log.Write( $"Removing values... [RemoveCount={removeCount}, BatchSize={deleteBatchSize}]" );
                     int rowRemoved = rockContext.BulkDelete( persistedValuesToRemove, deleteBatchSize );
                 }
 
+                log.Write( $"Querying for values to add..." );
+                var persistedEntityIdsToInsert = updatedEntityIdsQry.Where( x => !savedDataViewPersistedValues.Any( a => a.EntityId == x ) ).ToList();
                 if ( persistedEntityIdsToInsert.Any() )
                 {
+                    log.Write( $"Creating value objects..." );
                     List<DataViewPersistedValue> persistedValuesToInsert = persistedEntityIdsToInsert.OrderBy( a => a )
                         .Select( a =>
                         new DataViewPersistedValue
@@ -359,6 +380,7 @@ namespace Rock.Model
                             EntityId = a
                         } ).ToList();
 
+                    log.Write( $"Adding values... [AddCount={persistedValuesToInsert.Count}]" );
                     rockContext.BulkInsert( persistedValuesToInsert );
                 }
 
@@ -367,6 +389,24 @@ namespace Rock.Model
                 // Update the Persisted Refresh information.
                 PersistedLastRefreshDateTime = RockDateTime.Now;
                 PersistedLastRunDurationMilliseconds = Convert.ToInt32( persistStopwatch.Elapsed.TotalMilliseconds );
+
+                log.Write( $"Finished. [ElapsedTime={PersistedLastRunDurationMilliseconds}ms]" );
+            }
+        }
+
+        /// <summary>
+        /// Simplifies writing entries to the RockLog for a specific process.
+        /// </summary>
+        private class RockProcessLogger
+        {
+            public string LogDomain { get; set; }
+            public string DefaultTopic { get; set; }
+            public RockLogLevel DefaultLogLevel { get; set; } = RockLogLevel.Debug;
+
+            public void Write( string message, string topic = null, RockLogLevel? logLevel = null )
+            {
+                var msg = $"({ topic ?? DefaultTopic }) { message }";
+                RockLogger.Log.WriteToLog( logLevel ?? DefaultLogLevel, domain: LogDomain, messageTemplate: msg );
             }
         }
 
