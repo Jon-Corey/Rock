@@ -30,7 +30,7 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         /// <value>
         /// The filters that were applied.
         /// </value>
-        public GroupSchedulerFiltersBag AppliedFilters { get; set; }
+        public GroupSchedulerFiltersBag filters { get; set; }
 
         /// <summary>
         /// Gets or sets the occurrences to be scheduled.

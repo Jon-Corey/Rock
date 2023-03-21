@@ -14,7 +14,9 @@
             <div class="panel-collapsable">
                 <!-- Desktop -->
                 <div class="panel-toolbar d-none d-md-flex flex-wrap flex-sm-nowrap justify-content-between">
-                    <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ appliedFiltersText }}</div>
+                    <Loading :isLoading="isApplyingFilters">
+                        <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+                    </Loading>
 
                     <div class="d-block">
                         <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-clone"></i> Clone Schedules</RockButton>
@@ -69,7 +71,7 @@
         </div>
 
         <SelectFilters v-model:isVisible="isSelectFiltersVisible"
-                       :appliedFilters="filters"
+                       :appliedFilters="appliedFilters"
                        @applyFilters="onApplyFilters" />
 
         <selectIndividuals v-model:isVisible="isSelectIndividualsVisible"
@@ -83,15 +85,18 @@
     import SelectFilters from "./GroupScheduler/selectFilters.partial.obs";
     import selectIndividuals from "./GroupScheduler/selectIndividuals.partial.obs";
     import Alert from "@Obsidian/Controls/alert.obs";
+    import Loading from "@Obsidian/Controls/loading";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
     import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useInvokeBlockAction, useReloadBlock } from "@Obsidian/Utility/block";
-    import { AppliedFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/appliedFiltersBag";
+    import { GroupSchedulerAppliedFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerAppliedFiltersBag";
     import { GroupSchedulerCloneSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerCloneSettingsBag";
     import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
     import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
+    import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const config = useConfigurationValues<GroupSchedulerInitializationBox>();
 
@@ -104,9 +109,10 @@
     const isApplyingFilters = ref(false);
     const warningMessage = ref("");
 
-    const filters = ref<GroupSchedulerFiltersBag>(config.filters ?? {});
+    const filters = ref<GroupSchedulerFiltersBag | null | undefined>(config.filters);
     const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null | undefined>(config.resourceSettings);
     const cloneSettings = ref<GroupSchedulerCloneSettingsBag | null | undefined>(config.cloneSettings);
+    const scheduleOccurrences = ref<GroupSchedulerOccurrenceBag[] | null | undefined>(config.scheduleOccurrences);
 
     const isSelectFiltersVisible = ref(false);
     const isSelectIndividualsVisible = ref(false);
@@ -124,13 +130,13 @@
         return !filters.value?.groups?.length;
     });
 
-    const appliedFiltersText = computed((): string => {
-        const appliedFilters = filters.value;
+    const filtersText = computed((): string => {
+        const currentFilters = filters.value;
 
-        function getSingleValueOrCount(items: string[] | null | undefined, label: string): string {
+        function getSingleItemOrCount(items: ListItemBag[] | null | undefined, label: string): string {
             if (items?.length) {
                 if (items.length === 1 && items[0]) {
-                    return items[0];
+                    return items[0].text || "";
                 }
 
                 label = items.length === 1 ? label : `${label}s`;
@@ -141,13 +147,20 @@
         }
 
         const filtersTextSegements: string[] = [
-            appliedFilters?.groups?.length ? appliedFilters.groups.map(g => g.text).join(", ") : "",
-            appliedFilters?.friendlyDateRange ? `Weeks: ${appliedFilters.friendlyDateRange}` : "",
-            getSingleValueOrCount(appliedFilters?.locations?.selectedLocations, "Location"),
-            getSingleValueOrCount(appliedFilters?.schedules?.selectedSchedules, "Schedule")
+            currentFilters?.groups?.length ? currentFilters.groups.map(g => g.text).join(", ") : "",
+            currentFilters?.friendlyDateRange ? `Weeks: ${currentFilters?.friendlyDateRange}` : "",
+            getSingleItemOrCount(currentFilters?.locations?.selectedLocations, "Location"),
+            getSingleItemOrCount(currentFilters?.schedules?.selectedSchedules, "Schedule")
         ];
 
         return ` Filters: ${filtersTextSegements.filter(s => s).join(" | ")}`;
+    });
+
+    const appliedFilters = computed((): GroupSchedulerAppliedFiltersBag => {
+        return {
+            filters: filters.value,
+            scheduleOccurrences: scheduleOccurrences.value
+        };
     });
 
     // #endregion
@@ -164,21 +177,11 @@
     /**
      * Handles the `applyFilters` event of the `SelectFilters` component.
      *
-     * @param bag The filters to apply.
+     * @param appliedFilters The filters to apply.
      */
-    async function onApplyFilters(bag: GroupSchedulerFiltersBag): Promise<void> {
-        isApplyingFilters.value = true;
-        warningMessage.value = "";
-
-        const result = await invokeBlockAction<AppliedFiltersBag>("ApplyFilters", { bag });
-        isApplyingFilters.value = false;
-
-        if (!result.isSuccess) {
-            warningMessage.value = result.errorMessage || "Unknown error while trying to apply filters.";
-            return;
-        }
-
-        filters.value = result.data?.appliedFilters ?? {};
+    function onApplyFilters(appliedFilters: GroupSchedulerAppliedFiltersBag): void {
+        filters.value = appliedFilters?.filters;
+        scheduleOccurrences.value = appliedFilters.scheduleOccurrences;
     }
 
     /**

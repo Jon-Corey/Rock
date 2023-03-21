@@ -27,7 +27,7 @@ import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/S
 /** The filters that were applied in response to an "ApplyFilters" request, and the resulting occurrences to be scheduled. */
 export type GroupSchedulerAppliedFiltersBag = {
     /** Gets or sets the filters that were applied. */
-    appliedFilters?: GroupSchedulerFiltersBag | null;
+    filters?: GroupSchedulerFiltersBag | null;
 
     /** Gets or sets the occurrences to be scheduled. */
     scheduleOccurrences?: GroupSchedulerOccurrenceBag[] | null;

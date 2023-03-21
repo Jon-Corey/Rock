@@ -39,6 +39,6 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         /// <value>
         /// The selected locations.
         /// </value>
-        public List<string> SelectedLocations { get; set; }
+        public List<ListItemBag> SelectedLocations { get; set; }
     }
 }

@@ -29,5 +29,5 @@ export type GroupSchedulerSchedulesBag = {
     availableSchedules?: ListItemBag[] | null;
 
     /** Gets or sets the selected schedules. */
-    selectedSchedules?: string[] | null;
+    selectedSchedules?: ListItemBag[] | null;
 };

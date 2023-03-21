@@ -29,5 +29,5 @@ export type GroupSchedulerLocationsBag = {
     availableLocations?: ListItemBag[] | null;
 
     /** Gets or sets the selected locations. */
-    selectedLocations?: string[] | null;
+    selectedLocations?: ListItemBag[] | null;
 };
