@@ -155,7 +155,7 @@ namespace RockWeb.Blocks.Groups
             if ( _groupId.IsNullOrWhiteSpace() )
             {
                 SetAllowedGroupTypes();
-                var group = FindFirstGroup();
+                FindFirstGroup();
             }
 
             if ( pnlConfigPanel.Visible )
