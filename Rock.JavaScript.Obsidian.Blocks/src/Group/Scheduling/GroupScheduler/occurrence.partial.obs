@@ -1,0 +1,43 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <div class="location">
+        <div class="d-flex">
+            <span class="d-block text-sm">
+                {{ title }}
+            </span>
+        </div>
+
+        <ul class="list-group list-group-sched">
+
+            <!-- <li v-for="resource in resources"></li> -->
+
+            <li class="list-group-item d-flex align-items-center">
+                <ProgressBar></ProgressBar>
+                <RockButton class="circle-plus" type="button"><i class="fa fa-plus"></i></RockButton>
+            </li>
+        </ul>
+
+    </div>
+</template>
+
+<script setup lang="ts">
+    import { computed, PropType } from "vue";
+    import ProgressBar from "./progressBar.partial.obs";
+    import RockButton from "@Obsidian/Controls/rockButton";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
+
+    const props = defineProps({
+        occurrence: {
+            type: Object as PropType<GroupSchedulerOccurrenceBag>,
+            required: true
+        }
+    });
+
+    // #region Computed Values
+
+    const title = computed((): string => {
+        return props.occurrence?.locationName || "Location";
+    });
+
+    // #endregion
+</script>

@@ -1,0 +1,85 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <div class="date" :style="inlineStyle">
+        <h2 class="date-title">{{ title }}</h2>
+
+        <NotificationBox v-if="!anySchedules" :alertType="AlertType.Info">
+            No schedules available.
+        </NotificationBox>
+
+        <div v-else class="schedules">
+
+            <Schedule v-for="(occurrences, key) in occurrencesBySchedule" :key="key"
+                      :occurrences="occurrences"
+                      :show-prev-next-buttons="scheduleCount > 1"></Schedule>
+
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+    import { computed, PropType } from "vue";
+    import Schedule from "./schedule.partial.obs";
+    import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
+    import { AlertType } from "@Obsidian/Enums/Controls/alertType";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
+
+    const props = defineProps({
+        occurrences: {
+            type: Array as PropType<GroupSchedulerOccurrenceBag[]>,
+            required: true
+        }
+    });
+
+    // #region Computed Values
+
+    const title = computed((): string => {
+        /*
+         * It's assumed that all occurrences provided will belong to the same occurrence date;
+         * just grab the first friendlyOccurrenceDate, since they should all be the same.
+         */
+        let friendlyOccurrenceDate: string | null | undefined;
+        if (props.occurrences?.length) {
+            friendlyOccurrenceDate = props.occurrences[0].friendlyOccurrenceDate;
+        }
+
+        return friendlyOccurrenceDate || "No Date Provided";
+    });
+
+    const occurrencesBySchedule = computed((): Record<number, GroupSchedulerOccurrenceBag[]> => {
+        if (!props.occurrences?.length) {
+            return {};
+        }
+
+        const occurrences: Record<number, GroupSchedulerOccurrenceBag[]> = {};
+        props.occurrences
+            .filter((o: GroupSchedulerOccurrenceBag) => o.scheduleId)
+            .forEach((o: GroupSchedulerOccurrenceBag) => {
+                const scheduleId = o.scheduleId || 0;
+                let scheduleOccurrences = occurrences[scheduleId];
+
+                if (!scheduleOccurrences) {
+                    scheduleOccurrences = [];
+                    occurrences[scheduleId] = scheduleOccurrences;
+                }
+
+                scheduleOccurrences.push(o);
+            });
+
+        return occurrences;
+    });
+
+    const scheduleCount = computed((): number => {
+        return Object.keys(occurrencesBySchedule.value).length;
+    });
+
+    const anySchedules = computed((): boolean => {
+        return !!scheduleCount.value;
+    });
+
+    const inlineStyle = computed((): string => {
+        return `--schedule-count:${scheduleCount.value}`;
+    });
+
+    // #endregion
+</script>

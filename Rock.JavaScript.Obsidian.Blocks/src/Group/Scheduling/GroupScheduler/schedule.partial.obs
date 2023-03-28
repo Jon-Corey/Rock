@@ -1,0 +1,83 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <div class="schedule-column">
+        <div class="schedule-header">
+            <a v-if="props.showPrevNextButtons" href="#" class="page prev"><i class="fa fa-chevron-left"></i></a>
+            <span class="text-center text-sm-left">
+                {{ title }}
+            </span>
+            <a v-if="props.showPrevNextButtons" href="#" class="page next"><i class="fa fa-chevron-right"></i></a>
+        </div>
+
+        <NotificationBox v-if="!anyGroups" :alertType="AlertType.Info">
+            No groups available.
+        </NotificationBox>
+
+        <Group v-for="(occurrences, key) in occurrencesByGroup" :key="key"
+               :occurrences="occurrences"></Group>
+    </div>
+</template>
+
+<script setup lang="ts">
+    import { computed, PropType } from "vue";
+    import Group from "./group.partial.obs";
+    import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
+    import { AlertType } from "@Obsidian/Enums/Controls/alertType";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
+
+    const props = defineProps({
+        occurrences: {
+            type: Array as PropType<GroupSchedulerOccurrenceBag[]>,
+            required: true
+        },
+
+        showPrevNextButtons: {
+            type: Boolean as PropType<boolean>,
+            default: false
+        }
+    });
+
+    // #region Computed Values
+
+    const title = computed((): string => {
+        /*
+         * It's assumed that all occurrences provided will belong to the same schedule;
+         * just grab the first scheduleName, since they should all be the same.
+         */
+        let scheduleName: string | null | undefined;
+        if (props.occurrences?.length) {
+            scheduleName = props.occurrences[0].scheduleName;
+        }
+
+        return scheduleName || "Schedule";
+    });
+
+    const occurrencesByGroup = computed((): Record<number, GroupSchedulerOccurrenceBag[]> => {
+        if (!props.occurrences?.length) {
+            return {};
+        }
+
+        const occurrences: Record<number, GroupSchedulerOccurrenceBag[]> = {};
+        props.occurrences
+            .filter((o: GroupSchedulerOccurrenceBag) => o.groupId)
+            .forEach((o: GroupSchedulerOccurrenceBag) => {
+                const groupId = o.groupId || 0;
+                let groupOccurrences = occurrences[groupId];
+
+                if (!groupOccurrences) {
+                    groupOccurrences = [];
+                    occurrences[groupId] = groupOccurrences;
+                }
+
+                groupOccurrences.push(o);
+            });
+
+        return occurrences;
+    });
+
+    const anyGroups = computed((): boolean => {
+        return !!Object.keys(occurrencesByGroup.value).length;
+    });
+
+    // #endregion
+</script>

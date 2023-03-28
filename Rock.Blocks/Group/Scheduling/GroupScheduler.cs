@@ -89,8 +89,10 @@ namespace Rock.Blocks.Group.Scheduling
         #region Fields
 
         private List<int> _groupIds;
-        private List<int> _locationIds;
-        private List<int> _scheduleIds;
+        private List<GroupLocationSchedule> _groupLocationSchedules;
+
+        private DateTime _actualStartDate = RockDateTime.Today;
+        private DateTime _actualEndDate = RockDateTime.Today.AddDays( 42 );
 
         #endregion
 
@@ -125,10 +127,8 @@ namespace Rock.Blocks.Group.Scheduling
             var block = new BlockService( rockContext ).Get( this.BlockId );
             block.LoadAttributes( rockContext );
 
-            var filters = GetFilters( rockContext );
-
-            box.Filters = filters;
-            box.ScheduleOccurrences = GetScheduleOccurrences( rockContext, filters );
+            box.Filters = GetFilters( rockContext );
+            box.ScheduleOccurrences = GetScheduleOccurrences();
             box.ResourceSettings = GetResourceSettings();
             box.CloneSettings = GetCloneSettings();
             box.SecurityGrantToken = GetSecurityGrantToken();
@@ -144,6 +144,12 @@ namespace Rock.Blocks.Group.Scheduling
             var filters = new GroupSchedulerFiltersBag();
 
             // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
+
+            filters.Groups = new List<ListItemBag>
+            {
+                new ListItemBag { Value = "e82bd99e-7dc1-483c-a4f2-09017088c55e", Text = "Children's" },
+                new ListItemBag { Value = "0ba93d66-21b1-4229-979d-f76ceb57666d", Text = "A/V Team" }
+            };
 
             RefineFilters( rockContext, filters );
 
@@ -341,71 +347,72 @@ namespace Rock.Blocks.Group.Scheduling
         {
             if ( _groupIds?.Any() != true )
             {
+                _groupLocationSchedules = null;
                 filters.Locations = null;
                 filters.Schedules = null;
                 return;
             }
 
-            // Get all locations and schedules tied to the selected group(s) initially, so we can properly load the "available" lists.
-            var groupLocationSchedulesQuery = new GroupLocationService( rockContext )
+            /*
+             * Get all locations and schedules tied to the selected group(s) initially, so we can properly load the "available" lists.
+             * 
+             * Go ahead and materialize the list so we can:
+             *  1) Perform additional, in-memory filtering.
+             *  2) Set the scheduled start date/time(s) on the returned instances; these represent the "occurrences" that may be scheduled.
+             */
+            var groupLocationSchedules = new GroupLocationService( rockContext )
                 .Queryable()
                 .AsNoTracking()
                 .Where( gl =>
                     _groupIds.Contains( gl.GroupId )
                     && gl.Location.IsActive
                 )
-                .SelectMany( gl => gl.Schedules, ( gl, s ) => new
+                .SelectMany( gl => gl.Schedules, ( gl, s ) => new GroupLocationSchedule
                 {
-                    gl.Group,
-                    gl.Location,
+                    Group = gl.Group,
+                    Location = gl.Location,
                     Schedule = s
                 } )
                 .Where( gls =>
                     gls.Schedule.IsActive
-                );
-
-            /*
-             * Limit to those schedules that fall within the specified date range. Due to the design of recurring schedules,
-             * we can only do loose date comparisons at the query level. We'll potentially pull back more records than we'll
-             * actually display (for now), and further refine the schedules in a later step.
-             */
-            DateTime? startDate;
-            DateTime? endDate;
-
-            if ( filters.FirstEndOfWeekDate.HasValue )
-            {
-                /*
-                 * Subtract 6 days from the first "end of week" date specified; this will be our starting date to schedule.
-                 * This will limit to schedules that haven't already ended before the first "start of week" date.
-                 * Keep in mind that schedules with a null EffectiveEndDate represent recurring schedules that have no end date.
-                 */
-                startDate = filters.FirstEndOfWeekDate.Value.AddDays( -6 );
-                groupLocationSchedulesQuery = groupLocationSchedulesQuery
-                    .Where( gls =>
+                    /*
+                     * Limit to those schedules that fall within the specified date range. Due to the design of recurring schedules,
+                     * we can only do loose date comparisons at the query level. We'll potentially pull back more records than we'll
+                     * actually display (for now), and further refine once the schedule objects are materialized below.
+                     * 
+                     * Get schedules whose:
+                     * 
+                     *  1) EffectiveStartDate < end date (so we don't get any Schedules that start AFTER the specified date range), AND
+                     *  2) EffectiveEndDate is null OR >= start date (so we don't get any Schedules that have already ended BEFORE the specified date range).
+                     * 
+                     * Keep in mind that schedules with a null EffectiveEndDate represent recurring schedules that have no end date.
+                     */
+                    && gls.Schedule.EffectiveStartDate.HasValue
+                    && gls.Schedule.EffectiveStartDate.Value < _actualEndDate
+                    && (
                         !gls.Schedule.EffectiveEndDate.HasValue
-                        || gls.Schedule.EffectiveEndDate.Value >= startDate
-                    );
-            }
+                        || gls.Schedule.EffectiveEndDate.Value >= _actualStartDate
+                    )
+                )
+                .ToList();
 
-            if ( filters.LastEndOfWeekDate.HasValue )
+            // Remove any schedules that don't actually have start any date/time(s) within the specified date range, and set the start date/time(s) on those that remain.
+            if ( groupLocationSchedules.Any() )
             {
-                /*
-                 * Limit to schedules that have already started on or before the last "end of week" date.
-                 * We'll add a day to the filters value, since what we have so far is the selected "end of week" date @ 11:59.999PM.
-                 * This way, we can use "less than" in our filtering, to follow Rock's rule: let your start be "inclusive" and your end be "exclusive".
-                 */
-                endDate = filters.LastEndOfWeekDate.Value.AddDays( 1 ).StartOfDay();
-                groupLocationSchedulesQuery = groupLocationSchedulesQuery
-                    .Where( gls =>
-                        gls.Schedule.EffectiveStartDate.HasValue
-                        && gls.Schedule.EffectiveStartDate < endDate
-                    );
+                for ( int i = groupLocationSchedules.Count - 1; i >= 0; i-- )
+                {
+                    var groupLocationSchedule = groupLocationSchedules.ElementAt( i );
+
+                    var startDateTimes = groupLocationSchedule.Schedule.GetScheduledStartTimes( _actualStartDate, _actualEndDate );
+                    if ( startDateTimes?.Any() != true )
+                    {
+                        groupLocationSchedules.Remove( groupLocationSchedule );
+                        continue;
+                    }
+
+                    groupLocationSchedule.StartDateTimes.AddRange( startDateTimes );
+                }
             }
-
-            // Materialize the list of GroupLocationSchedules so we can perform additional, in-memory filtering.
-            var groupLocationSchedules = groupLocationSchedulesQuery.ToList();
-
-            // TODO: complete final date filtering here.
 
             // Refine the complete list of GroupLocationSchedules by the selected locations.
             var selectedLocationGuids = ( filters.Locations?.SelectedLocations ?? new List<ListItemBag>() )
@@ -433,7 +440,7 @@ namespace Rock.Blocks.Group.Scheduling
              * Refine down to the intersect of the above two collections.
              * This is the list of GroupLocationSchedules that match all currently-applied filters.
              */
-            var glsMatchingFilters = glsMatchingLocations
+            _groupLocationSchedules = glsMatchingLocations
                 .Intersect( glsMatchingSchedules )
                 .ToList();
 
@@ -482,12 +489,34 @@ namespace Rock.Blocks.Group.Scheduling
         /// <summary>
         /// Gets the list of [group, location, schedule] occurrences, based on the currently-applied filters.
         /// </summary>
-        /// <param name="rockContext">The rock context.</param>
-        /// <param name="filters">The currently-applied filters.</param>
         /// <returns>The list of [group, location, schedule] occurrences.</returns>
-        private List<GroupSchedulerOccurrenceBag> GetScheduleOccurrences( RockContext rockContext, GroupSchedulerFiltersBag filters )
+        private List<GroupSchedulerOccurrenceBag> GetScheduleOccurrences()
         {
-            return null;
+            if ( _groupLocationSchedules?.Any() != true )
+            {
+                return null;
+            }
+
+            return _groupLocationSchedules
+                .SelectMany( gls => gls.StartDateTimes, ( gls, startDateTime ) => new GroupSchedulerOccurrenceBag
+                {
+                    GroupId = gls.Group.Id,
+                    GroupName = gls.Group.Name,
+                    ParentGroupId = gls.Group.ParentGroupId,
+                    LocationId = gls.Location.Id,
+                    LocationName = gls.Location.ToString( true ),
+                    ScheduleId = gls.Schedule.Id,
+                    ScheduleName = gls.Schedule.ToString(),
+                    ScheduleOrder = gls.Schedule.Order,
+                    OccurrenceDate = startDateTime.Date.ToISO8601DateString(),
+                    FriendlyOccurrenceDate = startDateTime.Date.ToString( "dddd, MMM d" ),
+                    OccurrenceDateTime = startDateTime,
+                    SundayDate = RockDateTime.GetSundayDate( startDateTime ).ToISO8601DateString()
+                } )
+                .OrderBy( o => o.OccurrenceDate )
+                .ThenBy( o => o.ScheduleOrder )
+                .ThenBy( o => o.OccurrenceDateTime )
+                .ToList();
         }
 
         /// <summary>
@@ -573,11 +602,28 @@ namespace Rock.Blocks.Group.Scheduling
                 var results = new GroupSchedulerAppliedFiltersBag
                 {
                     filters = bag,
-                    ScheduleOccurrences = GetScheduleOccurrences( rockContext, bag )
+                    ScheduleOccurrences = GetScheduleOccurrences()
                 };
 
                 return ActionOk( results );
             }
+        }
+
+        #endregion
+
+        #region Supporting Classes
+
+        private class GroupLocationSchedule
+        {
+            private readonly List<DateTime> _startDateTimes = new List<DateTime>();
+
+            public Rock.Model.Group Group { get; set; }
+
+            public Location Location { get; set; }
+
+            public Schedule Schedule { get; set; }
+
+            public List<DateTime> StartDateTimes => _startDateTimes;
         }
 
         #endregion

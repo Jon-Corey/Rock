@@ -24,10 +24,10 @@
 
   .date {
     position: relative;
-    flex: 0 0 ~"calc(100% * var(--service-count))";
+    flex: 0 0 ~"calc(100% * var(--schedule-count))";
 
     @media (min-width: @screen-sm-min) {
-      flex-basis: ~"calc(50% * var(--service-count))";
+      flex-basis: ~"calc(50% * var(--schedule-count))";
       padding: 0 24px;
       border-right: 4px solid #d4d4d4;
       height: fit-content;
@@ -56,14 +56,14 @@
     font-weight: 600;
   }
 
-  .services {
+  .schedules {
     display: flex;
     flex-direction: row;
   }
 
-  .service-column {
+  .schedule-column {
     scroll-snap-align: start;
-    width: ~"calc(100% / var(--service-count))";
+    width: ~"calc(100% / var(--schedule-count))";
     padding: 0 15px;
     //scroll-margin: -15px;
     //scroll-padding: 15px;
@@ -190,7 +190,7 @@
     }
   }
 
-  .service-header {
+  .schedule-header {
     position: relative;
     display: flex;
     align-items: center;

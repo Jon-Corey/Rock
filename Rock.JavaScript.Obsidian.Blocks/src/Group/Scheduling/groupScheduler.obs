@@ -14,13 +14,11 @@
             <div class="panel-collapsable">
                 <!-- Desktop -->
                 <div class="panel-toolbar d-none d-md-flex flex-wrap flex-sm-nowrap justify-content-between">
-                    <Loading :isLoading="isApplyingFilters">
-                        <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
-                    </Loading>
+                    <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
 
                     <div class="d-block">
                         <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-clone"></i> Clone Schedules</RockButton>
-                        <RockButton :btnSize="BtnSize.ExtraSmall" @click="onSelectIndividualsClick"><i class="fa fa-calendar-check"></i> Rosters</RockButton>
+                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-calendar-check"></i> Rosters</RockButton>
                         <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-magic"></i> Auto Schedule</RockButton>
                         <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-envelope-o"></i> Send Now</RockButton>
                     </div>
@@ -41,7 +39,7 @@
                                     <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-clone"></i> Clone Schedules</button>
                                 </li>
                                 <li>
-                                    <button type="button" class="dropdown-item btn-link text-nowrap" @click="onSelectIndividualsClick"><i class="fa fa-calendar-check"></i> Rosters</button>
+                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-calendar-check"></i> Rosters</button>
                                 </li>
                                 <li>
                                     <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-magic"></i> Auto Schedule</button>
@@ -55,16 +53,15 @@
             <!-- Body -->
             <div class="panel-body p-0">
 
-                <Alert v-if="warningMessage" :alertType="AlertType.Warning">
-                    {{ warningMessage }}
-                </Alert>
-
                 <Alert v-if="showSelectGroupMessage" :alertType="AlertType.Info">
                     Please select at least one group.
                 </Alert>
 
                 <div class="snap-container">
-                    Schedule occurrences go here...
+
+                    <OccurrenceDate v-for="(occurrences, key) in occurrencesByDate" :key="key"
+                                    :occurrences="occurrences"></OccurrenceDate>
+
                 </div>
 
             </div>
@@ -72,51 +69,36 @@
 
         <SelectFilters v-model:isVisible="isSelectFiltersVisible"
                        :appliedFilters="appliedFilters"
-                       @applyFilters="onApplyFilters" />
-
-        <selectIndividuals v-model:isVisible="isSelectIndividualsVisible"
-                           :resourceSettings="resourceSettings"
-                           @assignIndividuals="onAssignIndividuals" />
+                       @filtersApplied="onFiltersApplied" />
     </div>
 </template>
 
 <script setup lang="ts">
     import { computed, ref } from "vue";
+    import OccurrenceDate from "./GroupScheduler/occurrenceDate.partial.obs";
     import SelectFilters from "./GroupScheduler/selectFilters.partial.obs";
-    import selectIndividuals from "./GroupScheduler/selectIndividuals.partial.obs";
     import Alert from "@Obsidian/Controls/alert.obs";
-    import Loading from "@Obsidian/Controls/loading";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
-    import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useInvokeBlockAction, useReloadBlock } from "@Obsidian/Utility/block";
+    import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useReloadBlock } from "@Obsidian/Utility/block";
     import { GroupSchedulerAppliedFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerAppliedFiltersBag";
-    import { GroupSchedulerCloneSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerCloneSettingsBag";
     import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
     import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
-    import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
     import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const config = useConfigurationValues<GroupSchedulerInitializationBox>();
 
     const securityGrant = getSecurityGrant(config.securityGrantToken);
-    const invokeBlockAction = useInvokeBlockAction();
     const reloadBlock = useReloadBlock();
 
     // #region Values
 
-    const isApplyingFilters = ref(false);
-    const warningMessage = ref("");
-
     const filters = ref<GroupSchedulerFiltersBag | null | undefined>(config.filters);
-    const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null | undefined>(config.resourceSettings);
-    const cloneSettings = ref<GroupSchedulerCloneSettingsBag | null | undefined>(config.cloneSettings);
     const scheduleOccurrences = ref<GroupSchedulerOccurrenceBag[] | null | undefined>(config.scheduleOccurrences);
 
     const isSelectFiltersVisible = ref(false);
-    const isSelectIndividualsVisible = ref(false);
-    const isCloneSchedulesVisible = ref(false);
 
     // #endregion
 
@@ -163,6 +145,29 @@
         };
     });
 
+    const occurrencesByDate = computed((): Record<string, GroupSchedulerOccurrenceBag[]> => {
+        if (!scheduleOccurrences.value?.length) {
+            return {};
+        }
+
+        const occurrences: Record<string, GroupSchedulerOccurrenceBag[]> = {};
+        scheduleOccurrences.value
+            .filter((o: GroupSchedulerOccurrenceBag) => o.occurrenceDate)
+            .forEach((o: GroupSchedulerOccurrenceBag) => {
+                const date = o.occurrenceDate || "";
+                let dateOccurrences = occurrences[date];
+
+                if (!dateOccurrences) {
+                    dateOccurrences = [];
+                    occurrences[date] = dateOccurrences;
+                }
+
+                dateOccurrences.push(o);
+            });
+
+        return occurrences;
+    });
+
     // #endregion
 
     // #region Event Handlers
@@ -175,29 +180,13 @@
     }
 
     /**
-     * Handles the `applyFilters` event of the `SelectFilters` component.
+     * Handles the `filtersApplied` event of the `SelectFilters` component.
      *
      * @param appliedFilters The filters to apply.
      */
-    function onApplyFilters(appliedFilters: GroupSchedulerAppliedFiltersBag): void {
+    function onFiltersApplied(appliedFilters: GroupSchedulerAppliedFiltersBag): void {
         filters.value = appliedFilters?.filters;
         scheduleOccurrences.value = appliedFilters.scheduleOccurrences;
-    }
-
-    /**
-     * Handles the click event of the "Add Individuals" buttons, to show the `SelectIndividuals` component.
-     */
-    function onSelectIndividualsClick(): void {
-        isSelectIndividualsVisible.value = true;
-    }
-
-    /**
-     * Handles the `assignIndividuals` event of the `SelectIndividuals` component.
-     *
-     * @param individuals The individuals to assign.
-     */
-    function onAssignIndividuals(individuals: any): void {
-        console.log(JSON.stringify(individuals));
     }
 
     // #endregion

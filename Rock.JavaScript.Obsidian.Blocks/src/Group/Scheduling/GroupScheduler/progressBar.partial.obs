@@ -1,0 +1,16 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <div class="progress text-danger m-0 flex-fill" role="progressbar" aria-label="Group Scheduler Progress">
+        <div class="progress-bar bg-danger" style="width:35%"></div>
+
+        <div class="progress-bar bg-danger o-50" style="width:60%"></div>
+
+        <div class="indicator" style="left:60%;" data-toggle="tooltip" title="Minimum: 6"></div>
+        <div class="indicator" style="left:80%;" data-toggle="tooltip" title="Desired: 8"></div>
+        <div class="indicator" style="left:90%;" data-toggle="tooltip" title="Max: 9"></div>
+    </div>
+</template>
+
+<script setup lang="ts">
+    import { PropType } from "vue";
+</script>

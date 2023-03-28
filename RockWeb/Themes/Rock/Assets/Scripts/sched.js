@@ -7,23 +7,23 @@ $(function () {
         columnResize();
     });
 
-    const nextButton = $('.service-header .next');
-    const prevButton = $('.service-header .prev');
+    const nextButton = $('.schedule-header .next');
+    const prevButton = $('.schedule-header .prev');
     const snappyContainer = $('.snap-container');
 
     function handleNextPrevClick(e) {
         e.preventDefault();
-        const currentServiceCol = $(this).closest('.service-column');
+        const currentScheduleCol = $(this).closest('.schedule-column');
         let $nextPrev = null;
 
         if ($(this).hasClass('next')) {
-            const nextServiceCol = currentServiceCol.next('.service-column');
-            $nextPrev = nextServiceCol.length ? nextServiceCol : $(this).closest('.date').next('.date').find('.service-column').first();
-            $nextPrev = $nextPrev.length ? $nextPrev : $('.date').first().find('.service-column').first();
+            const nextScheduleCol = currentScheduleCol.next('.schedule-column');
+            $nextPrev = nextScheduleCol.length ? nextScheduleCol : $(this).closest('.date').next('.date').find('.schedule-column').first();
+            $nextPrev = $nextPrev.length ? $nextPrev : $('.date').first().find('.schedule-column').first();
         } else if ($(this).hasClass('prev')) {
-            const prevServiceCol = currentServiceCol.prev('.service-column');
-            $nextPrev = prevServiceCol.length ? prevServiceCol : $(this).closest('.date').prev('.date').find('.service-column').last();
-            $nextPrev = $nextPrev.length ? $nextPrev : $('.date').last().find('.service-column').last();
+            const prevScheduleCol = currentScheduleCol.prev('.schedule-column');
+            $nextPrev = prevScheduleCol.length ? prevScheduleCol : $(this).closest('.date').prev('.date').find('.schedule-column').last();
+            $nextPrev = $nextPrev.length ? $nextPrev : $('.date').last().find('.schedule-column').last();
         }
 
         const offset = $nextPrev.offset().left + snappyContainer.scrollLeft();
@@ -38,8 +38,8 @@ $(function () {
 
 // create ResizeObserver
 var resizeObserver = new ResizeObserver(function (entries) {
-    // for each .serrvice-column get the height of each .location
-    $('.service-column').each(function () {
+    // for each .schedule-column get the height of each .location
+    $('.schedule-column').each(function () {
         var $this = $(this);
         $this.find('.location').each(function (i) {
             if (locationSize[i] === undefined) {
@@ -50,8 +50,8 @@ var resizeObserver = new ResizeObserver(function (entries) {
         });
     });
 
-    // for each .serrvice-column set the height of each .location
-    $('.service-column').each(function () {
+    // for each .schedule-column set the height of each .location
+    $('.schedule-column').each(function () {
         var $this = $(this);
         $this.find('.location').each(function (i) {
             $(this).height(locationSize[i]);
@@ -60,13 +60,13 @@ var resizeObserver = new ResizeObserver(function (entries) {
 });
 
 function columnResize() {
-    // for each .service-column set the height of each .location
+    // for each .schedule-column set the height of each .location
     // if window size greater than 768px
     if ($(window).width() > 768) {
-        const serviceColumns = document.querySelectorAll('.service-column');
+        const scheduleColumns = document.querySelectorAll('.schedule-column');
         const locationSize = [];
 
-        serviceColumns.forEach((column) => {
+        scheduleColumns.forEach((column) => {
             const locations = column.querySelectorAll('.location');
 
             locations.forEach((location, i) => {
@@ -78,14 +78,14 @@ function columnResize() {
             });
         });
 
-        $('.service-column').each(function () {
+        $('.schedule-column').each(function () {
             var $this = $(this);
             $this.find('.location').each(function (i) {
                 $(this).css('min-height', locationSize[i]);
             });
         });
     } else {
-        $('.service-column').each(function () {
+        $('.schedule-column').each(function () {
             var $this = $(this);
             $this.find('.location').each(function (i) {
                 $(this).css('min-height', '');
@@ -94,7 +94,7 @@ function columnResize() {
     }
 }
 
-// observe the .service-column
-$('.service-column').each(function () {
+// observe the .schedule-column
+$('.schedule-column').each(function () {
     resizeObserver.observe(this);
 });

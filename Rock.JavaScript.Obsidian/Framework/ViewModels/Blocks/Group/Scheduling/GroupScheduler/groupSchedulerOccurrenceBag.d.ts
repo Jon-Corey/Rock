@@ -23,17 +23,38 @@
 
 /** The information needed to identify a specific occurrence to be scheduled within the Group Scheduler. */
 export type GroupSchedulerOccurrenceBag = {
+    /** Gets or sets the friendly occurrence date. */
+    friendlyOccurrenceDate?: string | null;
+
     /** Gets or sets the group ID for this occurrence. */
     groupId: number;
 
+    /** Gets or sets the group name for this occurrence. */
+    groupName?: string | null;
+
     /** Gets or sets the location ID for this occurrence. */
     locationId: number;
+
+    /** Gets or sets the location name for this occurrence. */
+    locationName?: string | null;
+
+    /** Gets or sets the ISO 8601 date for this occurrence. */
+    occurrenceDate?: string | null;
+
+    /** Gets or sets the occurrence date and time. */
+    occurrenceDateTime?: string | null;
 
     /** Gets or sets the parent group ID (if any) for this occurrence. */
     parentGroupId?: number | null;
 
     /** Gets or sets the schedule ID for this occurrence. */
     scheduleId: number;
+
+    /** Gets or sets the schedule name for this occurrence. */
+    scheduleName?: string | null;
+
+    /** Gets or sets the schedule order for this occurrence. */
+    scheduleOrder: number;
 
     /** Gets or sets the ISO 8601 Sunday date for this occurrence. */
     sundayDate?: string | null;
