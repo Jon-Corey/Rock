@@ -152,7 +152,7 @@ namespace RockWeb.Blocks.Groups
                 countsType = this.GetAttributeValue( "InitialCountSetting" );
             }
 
-            if ( string.IsNullOrWhiteSpace( _groupId ) )
+            if ( _groupId.IsNullOrWhiteSpace() )
             {
                 SetAllowedGroupTypes();
                 var group = FindFirstGroup();
