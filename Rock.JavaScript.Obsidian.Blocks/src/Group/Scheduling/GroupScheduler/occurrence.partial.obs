@@ -21,7 +21,7 @@
                 <!-- <li v-for="resource in resources"></li> -->
 
                 <li class="list-group-item d-flex align-items-center">
-                    <ProgressBar></ProgressBar>
+                    <ProgressBar :progress="scheduleProgress"></ProgressBar>
                     <RockButton class="circle-plus" type="button"><i class="fa fa-plus"></i></RockButton>
                 </li>
             </ul>
@@ -33,10 +33,12 @@
 <script setup lang="ts">
     import { computed, PropType, ref } from "vue";
     import ProgressBar from "./progressBar.partial.obs";
+    import { IScheduleProgress, ISchedulerResourceAttend } from "./types.partial";
     import Loading from "@Obsidian/Controls/loading";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
+    import { ScheduledAttendanceItemStatus, ScheduledAttendanceItemStatusDescription } from "@Obsidian/Enums/Event/scheduledAttendanceItemStatus";
     import { useHttp } from "@Obsidian/Utility/http";
     import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
 
@@ -55,6 +57,8 @@
     const isLoadingResources = ref(true);
     const warningMessage = ref("");
 
+    const resources = ref<ISchedulerResourceAttend[]>([]);
+
     // #endregion
 
     // #region Computed Values
@@ -71,17 +75,59 @@
         return attendanceOccurrenceId.value > 0;
     });
 
+    const confirmedCount = computed((): number => {
+        var confirmed = ScheduledAttendanceItemStatusDescription[ScheduledAttendanceItemStatus.Confirmed].toLowerCase();
+        return resources.value
+            .filter((r: ISchedulerResourceAttend) => r.ConfirmationStatus === confirmed)
+            .length;
+    });
+
+    const pendingCount = computed((): number => {
+        var pending = ScheduledAttendanceItemStatusDescription[ScheduledAttendanceItemStatus.Pending].toLowerCase();
+        return resources.value
+            .filter((r: ISchedulerResourceAttend) => r.ConfirmationStatus === pending)
+            .length;
+    });
+
+    const scheduleProgress = computed((): IScheduleProgress => {
+        let minimumCapacity: number | null | undefined;
+        let desiredCapacity: number | null | undefined;
+        let maximumCapacity: number | null | undefined;
+
+        if (props.occurrence) {
+            minimumCapacity = props.occurrence.minimumCapacity;
+            desiredCapacity = props.occurrence.desiredCapacity;
+            maximumCapacity = props.occurrence.maximumCapacity;
+        }
+
+        const progress = {
+            minimumCapacity,
+            desiredCapacity,
+            maximumCapacity,
+            confirmedCount: confirmedCount.value,
+            pendingCount: pendingCount.value
+        };
+
+        return progress;
+    });
+
     // #endregion
 
     // #region Functions
 
     async function getCurrentResources(): Promise<void> {
         isLoadingResources.value = true;
+        warningMessage.value = "";
 
-        const response = await http.get<unknown>(`${apiBaseUrl}/GetAttendingSchedulerResources?attendanceOccurrenceId=${attendanceOccurrenceId.value}`);
-
-        console.log(JSON.stringify(response));
+        const result = await http.get<ISchedulerResourceAttend[]>(`${apiBaseUrl}/GetAttendingSchedulerResources?attendanceOccurrenceId=${attendanceOccurrenceId.value}`);
         isLoadingResources.value = false;
+
+        if (!result.isSuccess) {
+            warningMessage.value = result.errorMessage ?? "Unknown error when trying to get current resources.";
+            return;
+        }
+
+        resources.value = result.data ?? [];
     }
 
     // #endregion
