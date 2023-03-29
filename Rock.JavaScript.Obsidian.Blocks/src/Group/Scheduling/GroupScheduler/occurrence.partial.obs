@@ -1,29 +1,43 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <div class="location">
+    <NotificationBox v-if="!isValidAttendanceOccurrence" :alertType="AlertType.Warning">
+        Unable to schedule this occurrence.
+    </NotificationBox>
+
+    <div v-else class="location">
         <div class="d-flex">
             <span class="d-block text-sm">
                 {{ title }}
             </span>
         </div>
 
-        <ul class="list-group list-group-sched">
+        <Loading :isLoading="isLoadingResources">
+            <NotificationBox v-if="warningMessage" :alertType="AlertType.Warning">
+                {{ warningMessage }}
+            </NotificationBox>
 
-            <!-- <li v-for="resource in resources"></li> -->
+            <ul v-else class="list-group list-group-sched">
 
-            <li class="list-group-item d-flex align-items-center">
-                <ProgressBar></ProgressBar>
-                <RockButton class="circle-plus" type="button"><i class="fa fa-plus"></i></RockButton>
-            </li>
-        </ul>
+                <!-- <li v-for="resource in resources"></li> -->
+
+                <li class="list-group-item d-flex align-items-center">
+                    <ProgressBar></ProgressBar>
+                    <RockButton class="circle-plus" type="button"><i class="fa fa-plus"></i></RockButton>
+                </li>
+            </ul>
+        </Loading>
 
     </div>
 </template>
 
 <script setup lang="ts">
-    import { computed, PropType } from "vue";
+    import { computed, PropType, ref } from "vue";
     import ProgressBar from "./progressBar.partial.obs";
+    import Loading from "@Obsidian/Controls/loading";
+    import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
+    import { AlertType } from "@Obsidian/Enums/Controls/alertType";
+    import { useHttp } from "@Obsidian/Utility/http";
     import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
 
     const props = defineProps({
@@ -33,11 +47,44 @@
         }
     });
 
+    const http = useHttp();
+    const apiBaseUrl = "/api/Attendances";
+
+    // #region Values
+
+    const isLoadingResources = ref(true);
+    const warningMessage = ref("");
+
+    // #endregion
+
     // #region Computed Values
 
     const title = computed((): string => {
         return props.occurrence?.locationName || "Location";
     });
 
+    const attendanceOccurrenceId = computed((): number => {
+        return props.occurrence?.attendanceOccurrenceId ?? 0;
+    });
+
+    const isValidAttendanceOccurrence = computed((): boolean => {
+        return attendanceOccurrenceId.value > 0;
+    });
+
     // #endregion
+
+    // #region Functions
+
+    async function getCurrentResources(): Promise<void> {
+        isLoadingResources.value = true;
+
+        const response = await http.get<unknown>(`${apiBaseUrl}/GetAttendingSchedulerResources?attendanceOccurrenceId=${attendanceOccurrenceId.value}`);
+
+        console.log(JSON.stringify(response));
+        isLoadingResources.value = false;
+    }
+
+    // #endregion
+
+    getCurrentResources();
 </script>

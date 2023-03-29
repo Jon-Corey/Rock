@@ -25,6 +25,14 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
     public class GroupSchedulerOccurrenceBag
     {
         /// <summary>
+        /// Gets or sets the attendance occurrence ID for this occurrence.
+        /// </summary>
+        /// <value>
+        /// The attendance occurrence ID for this occurrence.
+        /// </value>
+        public int AttendanceOccurrenceId { get; set; }
+
+        /// <summary>
         /// Gets or sets the group ID for this occurrence.
         /// </summary>
         /// <value>
@@ -119,5 +127,29 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         /// The ISO 8601 Sunday date for this occurrence.
         /// </value>
         public string SundayDate { get; set; }
+
+        /// <summary>
+        /// Gets or sets the minimum capacity for this occurrence.
+        /// </summary>
+        /// <value>
+        /// The minimum capacity for this occurrence.
+        /// </value>
+        public int? MinimumCapacity { get; set; }
+
+        /// <summary>
+        /// Gets or sets the desired capacity for this occurrence.
+        /// </summary>
+        /// <value>
+        /// The desired capacity for this occurrence.
+        /// </value>
+        public int? DesiredCapacity { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum capacity for this occurrence.
+        /// </summary>
+        /// <value>
+        /// The maximum capacity for this occurrence.
+        /// </value>
+        public int? MaximumCapacity { get; set; }
     }
 }

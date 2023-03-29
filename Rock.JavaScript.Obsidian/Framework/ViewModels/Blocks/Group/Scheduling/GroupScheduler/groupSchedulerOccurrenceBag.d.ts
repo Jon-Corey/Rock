@@ -23,6 +23,12 @@
 
 /** The information needed to identify a specific occurrence to be scheduled within the Group Scheduler. */
 export type GroupSchedulerOccurrenceBag = {
+    /** Gets or sets the attendance occurrence ID for this occurrence. */
+    attendanceOccurrenceId: number;
+
+    /** Gets or sets the desired capacity for this occurrence. */
+    desiredCapacity?: number | null;
+
     /** Gets or sets the friendly occurrence date. */
     friendlyOccurrenceDate?: string | null;
 
@@ -37,6 +43,12 @@ export type GroupSchedulerOccurrenceBag = {
 
     /** Gets or sets the location name for this occurrence. */
     locationName?: string | null;
+
+    /** Gets or sets the maximum capacity for this occurrence. */
+    maximumCapacity?: number | null;
+
+    /** Gets or sets the minimum capacity for this occurrence. */
+    minimumCapacity?: number | null;
 
     /** Gets or sets the ISO 8601 date for this occurrence. */
     occurrenceDate?: string | null;
