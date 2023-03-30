@@ -1324,12 +1324,8 @@ namespace Rock.Model
                 {
                     GroupMemberId = a.Id,
                     GroupRoleId = a.GroupRoleId,
-                    PersonId = a.PersonId,
+                    Person = a.Person,
                     Note = a.Note,
-                    NickName = a.Person.NickName,
-                    LastName = a.Person.LastName,
-                    SuffixValueId = a.Person.SuffixValueId,
-                    RecordTypeValueId = a.Person.RecordTypeValueId,
                     ScheduleTemplateId = a.ScheduleTemplateId,
                     ScheduleStartDate = a.ScheduleStartDate,
                     MemberAssignments = a.GroupMemberAssignments
@@ -1417,7 +1413,7 @@ namespace Rock.Model
 
                 schedulerResourceList = resourceList.Select( a => new SchedulerResource
                 {
-                    PersonId = a.PersonId,
+                    PersonId = a.Person.Id,
 
                     /* 2020-07-17 MDP  
                      *  This is their GroupMember information from the *ResourceGroup*, and not always the Occurrence Group. 
@@ -1448,9 +1444,10 @@ namespace Rock.Model
                     .ToList(),
 
                     Note = a.Note,
-                    PersonNickName = a.NickName,
-                    PersonLastName = a.LastName,
-                    PersonName = Person.FormatFullName( a.NickName, a.LastName, a.SuffixValueId, a.RecordTypeValueId ),
+                    PersonNickName = a.Person.NickName,
+                    PersonLastName = a.Person.LastName,
+                    PersonName = Person.FormatFullName( a.Person.NickName, a.Person.LastName, a.Person.SuffixValueId, a.Person.RecordTypeValueId ),
+                    PersonPhotoUrl = a.Person.PhotoUrl,
                     HasGroupRequirementsConflict = groupMemberIdsThatLackGroupRequirements?.Contains( a.GroupMemberId ) ?? false,
                 } ).ToList();
             }
@@ -1797,11 +1794,7 @@ namespace Rock.Model
                 ap.Attendance.RSVP,
                 ap.Attendance.DeclineReasonValueId,
                 ap.Attendance.ScheduledToAttend,
-                PersonId = ap.Person.Id,
-                NickName = ap.Person.NickName,
-                LastName = ap.Person.LastName,
-                SuffixValueId = ap.Person.SuffixValueId,
-                RecordTypeValueId = ap.Person.RecordTypeValueId,
+                ap.Person,
 
                 // set HasSchedulingConflict = true if the same person is requested/scheduled for another attendance within the same ScheduleId/Date
                 SchedulingConflicts = conflictingScheduledAttendancesQuery
@@ -1825,7 +1818,7 @@ namespace Rock.Model
             } );
 
             var scheduledAttendancesList = scheduledAttendancesQuery.ToList();
-            var personIds = scheduledAttendancesList.Select( a => a.PersonId ).Distinct().ToList();
+            var personIds = scheduledAttendancesList.Select( a => a.Person.Id ).Distinct().ToList();
 
             // create a lookup so we can find out which role the person has in the occurrence group (if they are a member)
             var attendanceOccurrenceGroupMemberLookupQuery = new GroupMemberService( rockContext )
@@ -1892,7 +1885,7 @@ namespace Rock.Model
                 }
                 
                 var groupMemberLookupValues = attendanceOccurrenceGroupMemberLookup
-                    ?.GetValueOrNull( a.PersonId )
+                    ?.GetValueOrNull( a.Person.Id )
                     ?.OrderBy( x => x.GroupRole?.Order ?? int.MaxValue );
 
                 var attendanceOccurrenceGroupMemberInfo = groupMemberLookupValues?.FirstOrDefault();
@@ -1942,7 +1935,7 @@ namespace Rock.Model
                     OccurrenceDate = occurrenceDate,
                     ConfirmationStatus = status.ConvertToString( false ).ToLower(),
                     MatchesPreference = matchesPreferenceAsDataAttribute,
-                    PersonId = a.PersonId,
+                    PersonId = a.Person.Id,
                     DeclinedReason = DefinedValueCache.GetValue( a.DeclineReasonValueId ).EncodeHtml(),
 
                     GroupMemberId = attendanceOccurrenceGroupMemberInfo?.MemberId,
@@ -1953,9 +1946,10 @@ namespace Rock.Model
                     ResourceScheduledList = null,
                     Note = null,
 
-                    PersonNickName = a.NickName,
-                    PersonLastName = a.LastName,
-                    PersonName = Person.FormatFullName( a.NickName, a.LastName, a.SuffixValueId, a.RecordTypeValueId ),
+                    PersonNickName = a.Person.NickName,
+                    PersonLastName = a.Person.LastName,
+                    PersonName = Person.FormatFullName( a.Person.NickName, a.Person.LastName, a.Person.SuffixValueId, a.Person.RecordTypeValueId ),
+                    PersonPhotoUrl = a.Person.PhotoUrl,
                     SchedulingConflicts = a.SchedulingConflicts,
                     BlackoutDates = personBlackoutDates,
 
@@ -2866,12 +2860,8 @@ namespace Rock.Model
         {
             public int GroupMemberId { get; set; }
             public int GroupRoleId { get; set; }
-            public int PersonId { get; set; }
+            public Person Person { get; set; }
             public string Note { get; set; }
-            public string NickName { get; set; }
-            public string LastName { get; set; }
-            public int? SuffixValueId { get; set; }
-            public int? RecordTypeValueId { get; set; }
             public int? ScheduleTemplateId { get; set; }
             public DateTime? ScheduleStartDate { get; set; }
             public IEnumerable<MemberAssignmentInfo> MemberAssignments { get; internal set; }
@@ -3216,6 +3206,14 @@ namespace Rock.Model
         /// The name of the person.
         /// </value>
         public string PersonName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the photo URL for the person.
+        /// </summary>
+        /// <value>
+        /// The photo URL for the person.
+        /// </value>
+        public string PersonPhotoUrl { get; set; }
 
         /// <summary>
         /// Gets or sets the last attendance date time.

@@ -67,6 +67,9 @@ export interface ISchedulerResource {
     /** The name of the person. */
     PersonName?: string | null,
 
+    /** The photo URL for the person. */
+    PersonPhotoUrl?: string | null,
+
     /** The last attendance date time. */
     LastAttendanceDateTime?: string | null,
 

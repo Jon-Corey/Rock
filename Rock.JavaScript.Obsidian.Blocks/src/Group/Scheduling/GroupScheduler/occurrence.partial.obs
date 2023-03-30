@@ -18,7 +18,8 @@
 
             <ul v-else class="list-group list-group-sched">
 
-                <!-- <li v-for="resource in resources"></li> -->
+                <ScheduledResource v-for="resource in resources" :key="resource.AttendanceId"
+                                   :resource="resource"></ScheduledResource>
 
                 <li class="list-group-item d-flex align-items-center">
                     <ProgressBar :progress="scheduleProgress"></ProgressBar>
@@ -33,6 +34,7 @@
 <script setup lang="ts">
     import { computed, PropType, ref } from "vue";
     import ProgressBar from "./progressBar.partial.obs";
+    import ScheduledResource from "./scheduledResource.partial.obs";
     import { IScheduleProgress, ISchedulerResourceAttend } from "./types.partial";
     import Loading from "@Obsidian/Controls/loading";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";

@@ -1,0 +1,61 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <li v-if="props.resource" class="list-group-item text-sm" :title="title">
+        <img :src="imgSrc" :class="imgCssClass">
+        <span class="resource-name">{{ props.resource?.PersonName }}</span>
+
+        <span class="resource-role">{{ props.resource?.GroupRoleName }}</span>
+
+        <div class="dropdown">
+            <button class="btn btn-link btn-overflow" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></button>
+
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li>
+                    <button type="button" class="dropdown-item btn-link js-markconfirmed">Mark Confirmed</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item btn-link js-markpending">Mark Pending</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item btn-link js-markdeclined">Mark Declined</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item btn-link js-resendconfirmation">Resend Confirmation</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item btn-link js-update-preference">Update Preference</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item dropdown-item-danger btn-link js-remove">Remove</button>
+                </li>
+            </ul>
+        </div>
+    </li>
+</template>
+
+<script setup lang="ts">
+    import { computed, PropType, ref } from "vue";
+    import { ISchedulerResourceAttend } from "./types.partial";
+
+    const props = defineProps({
+        resource: {
+            type: Object as PropType<ISchedulerResourceAttend>,
+            required: true
+        }
+    });
+
+    // #region Values
+
+    const title = ref<string>(props.resource?.ConfirmationStatus ?? "");
+    const imgSrc = ref<string>(props.resource?.PersonPhotoUrl ?? "");
+
+    // #endregion
+
+    // #region Computed Values
+
+    const imgCssClass = computed((): string => {
+        return `avatar avatar-status${(title.value ? ` ${title.value.toLowerCase()}` : "")}`;
+    });
+
+    // #endregion
+</script>
