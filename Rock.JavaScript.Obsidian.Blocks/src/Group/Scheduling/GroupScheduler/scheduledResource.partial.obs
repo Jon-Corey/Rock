@@ -2,60 +2,194 @@
 <template>
     <li v-if="props.resource" class="list-group-item text-sm" :title="title">
         <img :src="imgSrc" :class="imgCssClass">
-        <span class="resource-name">{{ props.resource?.PersonName }}</span>
-
+        <span class="resource-name">{{ personName }}</span>
         <span class="resource-role">{{ props.resource?.GroupRoleName }}</span>
 
         <div class="dropdown">
-            <button class="btn btn-link btn-overflow" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></button>
+            <button type="button"
+                    class="btn btn-link btn-overflow"
+                    data-toggle="dropdown"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    :disabled="isUpdatingResource">
+                <i class="fa fa-ellipsis-v"></i>
+            </button>
 
             <ul class="dropdown-menu dropdown-menu-right">
                 <li>
-                    <button type="button" class="dropdown-item btn-link js-markconfirmed">Mark Confirmed</button>
+                    <button type="button"
+                            class="dropdown-item btn-link"
+                            @click="onUpdateResource(ResourceAction.MarkConfirmed)">
+                        Mark Confirmed
+                    </button>
                 </li>
                 <li>
-                    <button type="button" class="dropdown-item btn-link js-markpending">Mark Pending</button>
+                    <button type="button"
+                            class="dropdown-item btn-link"
+                            @click="onUpdateResource(ResourceAction.MarkPending)">
+                        Mark Pending
+                    </button>
                 </li>
                 <li>
-                    <button type="button" class="dropdown-item btn-link js-markdeclined">Mark Declined</button>
+                    <button type="button"
+                            class="dropdown-item btn-link"
+                            @click="onUpdateResource(ResourceAction.MarkDeclined)">
+                        Mark Declined
+                    </button>
                 </li>
                 <li>
-                    <button type="button" class="dropdown-item btn-link js-resendconfirmation">Resend Confirmation</button>
+                    <button type="button"
+                            class="dropdown-item btn-link"
+                            @click="onUpdateResource(ResourceAction.ResendConfirmation)">
+                        Resend Confirmation
+                    </button>
                 </li>
                 <li>
-                    <button type="button" class="dropdown-item btn-link js-update-preference">Update Preference</button>
+                    <button type="button"
+                            class="dropdown-item btn-link"
+                            @click="onUpdateResource(ResourceAction.UpdatePreference)">
+                        Update Preference
+                    </button>
                 </li>
                 <li>
-                    <button type="button" class="dropdown-item dropdown-item-danger btn-link js-remove">Remove</button>
+                    <button type="button"
+                            class="dropdown-item dropdown-item-danger btn-link"
+                            @click="onUpdateResource(ResourceAction.Remove)">
+                        Remove
+                    </button>
                 </li>
             </ul>
         </div>
+
     </li>
 </template>
 
 <script setup lang="ts">
     import { computed, PropType, ref } from "vue";
-    import { ISchedulerResourceAttend } from "./types.partial";
+    import { ISchedulerResourceAttend, ResourceAction } from "./types.partial";
+    import { useVModelPassthrough } from "@Obsidian/Utility/component";
+    import { useHttp } from "@Obsidian/Utility/http";
 
     const props = defineProps({
         resource: {
             type: Object as PropType<ISchedulerResourceAttend>,
             required: true
+        },
+
+        updateResourceWarningMessage: {
+            type: String as PropType<string>,
+            default: ""
         }
     });
 
+    const emit = defineEmits<{
+        (e: "resourceUpdated"): void,
+        (e: "update:updateResourceWarningMessage"): void
+    }>();
+
+    const http = useHttp();
+
     // #region Values
 
-    const title = ref<string>(props.resource?.ConfirmationStatus ?? "");
+    const updateResourceWarningMessage = useVModelPassthrough(props, "updateResourceWarningMessage", emit);
+
+    const isUpdatingResource = ref(false);
+
     const imgSrc = ref<string>(props.resource?.PersonPhotoUrl ?? "");
+    const personName = ref<string>(props.resource?.PersonName ?? "");
 
     // #endregion
 
     // #region Computed Values
 
+    const title = computed((): string => {
+        return props.resource?.ConfirmationStatus ?? "";
+    });
+
     const imgCssClass = computed((): string => {
         return `avatar avatar-status${(title.value ? ` ${title.value.toLowerCase()}` : "")}`;
     });
+
+    const attendanceId = computed((): number => {
+        return props.resource?.AttendanceId ?? 0;
+    });
+
+    // #endregion
+
+    // #region Functions
+
+    /**
+     * Returns a friendly action that can be used in messaging, based on the provided action.
+     *
+     * @param action The action for which to return a friendly action.
+     */
+    function getFriendlyAction(action: ResourceAction): string {
+        switch (action) {
+            case ResourceAction.MarkConfirmed:
+                return `marking ${personName.value} as confirmed`;
+            case ResourceAction.MarkPending:
+                return `marking ${personName.value} as pending`;
+            case ResourceAction.MarkDeclined:
+                return `marking ${personName.value} as declined`;
+            case ResourceAction.ResendConfirmation:
+                return `resending confirmation to ${personName.value}`;
+            case ResourceAction.UpdatePreference:
+                return `updating preferences for ${personName.value}`;
+            case ResourceAction.Remove:
+                return `removing ${personName.value}`;
+            default:
+                return `updating ${personName.value}`;
+        }
+    }
+
+    // #endregion
+
+    // #region Event Handlers
+
+    /**
+     * Updates the resource according to the specified action.
+     *
+     * @param action The update action to perform.
+     */
+    async function onUpdateResource(action: ResourceAction): Promise<void> {
+        isUpdatingResource.value = true;
+        updateResourceWarningMessage.value = "";
+
+        const warningMessage = `There was an error while ${getFriendlyAction(action)}`;
+
+        let endpoint = "";
+        switch (action) {
+            case ResourceAction.MarkConfirmed:
+                endpoint = "ScheduledPersonConfirm";
+                break;
+            case ResourceAction.MarkPending:
+                endpoint = "ScheduledPersonPending";
+                break;
+            case ResourceAction.MarkDeclined:
+                endpoint = "ScheduledPersonDecline";
+                break;
+            case ResourceAction.ResendConfirmation:
+                endpoint = "ScheduledPersonSendConfirmationCommunication";
+                break;
+            case ResourceAction.Remove:
+                endpoint = "ScheduledPersonRemove";
+                break;
+            default:
+                updateResourceWarningMessage.value = warningMessage;
+                isUpdatingResource.value = false;
+                return;
+        }
+
+        const result = await http.doApiCall("PUT", `/api/Attendances/${endpoint}?attendanceId=${attendanceId.value}`);
+        isUpdatingResource.value = false;
+
+        if (!result.isSuccess) {
+            updateResourceWarningMessage.value = warningMessage;
+            return;
+        }
+
+        emit("resourceUpdated");
+    }
 
     // #endregion
 </script>

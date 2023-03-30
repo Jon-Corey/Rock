@@ -11,22 +11,30 @@
             </span>
         </div>
 
-        <Loading :isLoading="isLoadingResources">
-            <NotificationBox v-if="warningMessage" :alertType="AlertType.Warning">
-                {{ warningMessage }}
-            </NotificationBox>
+        <NotificationBox v-if="updateResourceWarningMessage" :alertType="AlertType.Warning">
+            {{ updateResourceWarningMessage }}
+        </NotificationBox>
 
-            <ul v-else class="list-group list-group-sched">
+        <NotificationBox v-if="getResourcesWarningMessage" :alertType="AlertType.Warning">
+            {{ getResourcesWarningMessage }}
+        </NotificationBox>
 
-                <ScheduledResource v-for="resource in resources" :key="resource.AttendanceId"
-                                   :resource="resource"></ScheduledResource>
+        <ul v-else class="list-group list-group-sched">
 
-                <li class="list-group-item d-flex align-items-center">
-                    <ProgressBar :progress="scheduleProgress"></ProgressBar>
-                    <RockButton class="circle-plus" type="button"><i class="fa fa-plus"></i></RockButton>
-                </li>
-            </ul>
-        </Loading>
+            <ScheduledResource v-for="resource in resources" :key="resource.AttendanceId"
+                               :resource="resource"
+                               v-model:updateResourceWarningMessage="updateResourceWarningMessage"
+                               @resourceUpdated="onResourceUpdated"></ScheduledResource>
+
+            <li class="list-group-item d-flex align-items-center">
+                <ProgressBar :progress="scheduleProgress"></ProgressBar>
+                <RockButton type="button"
+                            class="circle-plus"
+                            :disabled="isLoadingResources">
+                    <i class="fa fa-plus"></i>
+                </RockButton>
+            </li>
+        </ul>
 
     </div>
 </template>
@@ -36,7 +44,6 @@
     import ProgressBar from "./progressBar.partial.obs";
     import ScheduledResource from "./scheduledResource.partial.obs";
     import { IScheduleProgress, ISchedulerResourceAttend } from "./types.partial";
-    import Loading from "@Obsidian/Controls/loading";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
@@ -57,7 +64,8 @@
     // #region Values
 
     const isLoadingResources = ref(true);
-    const warningMessage = ref("");
+    const getResourcesWarningMessage = ref("");
+    const updateResourceWarningMessage = ref("");
 
     const resources = ref<ISchedulerResourceAttend[]>([]);
 
@@ -119,17 +127,29 @@
 
     async function getCurrentResources(): Promise<void> {
         isLoadingResources.value = true;
-        warningMessage.value = "";
+        getResourcesWarningMessage.value = "";
+        updateResourceWarningMessage.value = "";
 
         const result = await http.get<ISchedulerResourceAttend[]>(`${apiBaseUrl}/GetAttendingSchedulerResources?attendanceOccurrenceId=${attendanceOccurrenceId.value}`);
         isLoadingResources.value = false;
 
         if (!result.isSuccess) {
-            warningMessage.value = result.errorMessage ?? "Unknown error when trying to get current resources.";
+            getResourcesWarningMessage.value = result.errorMessage ?? "Unknown error when trying to get current resources.";
             return;
         }
 
         resources.value = result.data ?? [];
+    }
+
+    // #endregion
+
+    // #region Event Handlers
+
+    /**
+     * Handles the `resourceUpdated` event of the scheduled resource component.
+     */
+    function onResourceUpdated(): void {
+        getCurrentResources();
     }
 
     // #endregion

@@ -177,3 +177,15 @@ export const ProgressState = {
     warning: "warning",
     success: "success"
 };
+
+/**
+ * The actions that can be taken for a given, scheduled resource.
+ */
+export enum ResourceAction {
+    MarkConfirmed = 0,
+    MarkPending = 1,
+    MarkDeclined = 2,
+    ResendConfirmation = 3,
+    UpdatePreference = 4,
+    Remove = 5
+}
