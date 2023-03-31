@@ -1,9 +1,9 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <li v-if="props.resource" class="list-group-item text-sm" :title="title">
+    <li v-if="resource" class="list-group-item text-sm" :title="title">
         <img :src="imgSrc" :class="imgCssClass">
         <span class="resource-name">{{ personName }}</span>
-        <span class="resource-role">{{ props.resource?.GroupRoleName }}</span>
+        <span class="resource-role">{{ resource?.GroupRoleName }}</span>
 
         <div class="dropdown">
             <button type="button"

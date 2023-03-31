@@ -23,7 +23,7 @@
              class="indicator"
              :style="`left:${maximumPercentage}%;`"
              data-toggle="tooltip"
-             :title="`Max: ${maximumCapacity}`"></div>
+             :title="`Maximum: ${maximumCapacity}`"></div>
     </div>
 </template>
 

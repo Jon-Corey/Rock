@@ -53,14 +53,18 @@
             <!-- Body -->
             <div class="panel-body p-0">
 
-                <Alert v-if="showSelectGroupMessage" :alertType="AlertType.Info">
+                <Alert v-if="!anyGroupsSelected" :alertType="AlertType.Info">
                     Please select at least one group.
                 </Alert>
 
-                <div class="snap-container">
+                <div v-else ref="snapContainer" class="snap-container">
 
-                    <OccurrenceDate v-for="(occurrences, key) in occurrencesByDate" :key="key"
-                                    :occurrences="occurrences"></OccurrenceDate>
+                    <OccurrenceDate v-for="(occurrences, key, index) in occurrencesByDate" :key="key"
+                                    :occurrences="occurrences"
+                                    :showPrevNextButtons="showPrevNextButtons"
+                                    @scheduleElementsCreated="onScheduleElementsCreated(index, $event)"
+                                    @goPrevious="onGoPrevious(index, $event)"
+                                    @goNext="onGoNext(index, $event)"></OccurrenceDate>
 
                 </div>
 
@@ -74,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, ref } from "vue";
+    import { computed, nextTick, ref } from "vue";
     import OccurrenceDate from "./GroupScheduler/occurrenceDate.partial.obs";
     import SelectFilters from "./GroupScheduler/selectFilters.partial.obs";
     import Alert from "@Obsidian/Controls/alert.obs";
@@ -93,7 +97,16 @@
     const securityGrant = getSecurityGrant(config.securityGrantToken);
     const reloadBlock = useReloadBlock();
 
+    enum ScrollDirection {
+        Previous,
+        Next
+    }
+
     // #region Values
+
+    const snapContainer = ref<HTMLElement | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scheduleElementsByOccurrenceDate = ref<Record<number, any[]>>({});
 
     const filters = ref<GroupSchedulerFiltersBag | null | undefined>(config.filters);
     const scheduleOccurrences = ref<GroupSchedulerOccurrenceBag[] | null | undefined>(config.scheduleOccurrences);
@@ -108,8 +121,8 @@
         return config.errorMessage;
     });
 
-    const showSelectGroupMessage = computed((): boolean => {
-        return !filters.value?.groups?.length;
+    const anyGroupsSelected = computed((): boolean => {
+        return !!filters.value?.groups?.length;
     });
 
     const filtersText = computed((): string => {
@@ -168,6 +181,118 @@
         return occurrences;
     });
 
+    const occurrenceDateCount = computed((): number => {
+        return Object.keys(occurrencesByDate.value).length;
+    });
+
+    const showPrevNextButtons = computed((): boolean => {
+        if (!occurrenceDateCount.value) {
+            return false;
+        }
+
+        // If we have more than once occurrence date, show the prev/next buttons.
+        if (occurrenceDateCount.value > 1) {
+            return true;
+        }
+
+        /*
+         * If we got here, this means we have eactly one occurrence date; check to see if this date contains
+         * more than one schedule. If so, show the prev/next buttons.
+         */
+        const uniqueScheduleIds: number[] = [];
+        occurrencesByDate[Object.keys(occurrencesByDate.value)[0]]?.forEach((o: GroupSchedulerOccurrenceBag) => {
+            if (!uniqueScheduleIds.some((id: number) => id === o.scheduleId)) {
+                uniqueScheduleIds.push(o.scheduleId);
+            }
+        });
+
+        return uniqueScheduleIds.length > 0;
+    });
+
+    // #endregion
+
+    // #region Functions
+
+    /**
+     * Scrolls to the previous or next schedule element.
+     *
+     * @param currentDateIndex The index of the occurrenceDate component currently within view.
+     * @param currentScheduleIndex The index of the schedule component (within a given occurrence date) currently within view.
+     * @param direction The direction to scroll.
+     */
+    function scrollToSchedule(currentDateIndex: number, currentScheduleIndex: number, direction: ScrollDirection): void {
+        let targetSchedules = scheduleElementsByOccurrenceDate.value[currentDateIndex];
+        let targetScheduleIndex = direction == ScrollDirection.Previous ? currentScheduleIndex - 1 : currentScheduleIndex + 1;
+
+        if (direction == ScrollDirection.Previous) {
+            if (targetScheduleIndex < 0) {
+                // The first schedule of a given occurrence date is currently within view.
+                if (occurrenceDateCount.value > 1) {
+                    // There is more than one occurrence date; go to the last schedule of the previous occurrence date.
+                    targetSchedules = scheduleElementsByOccurrenceDate.value[currentDateIndex === 0 ? occurrenceDateCount.value - 1 : currentDateIndex - 1];
+                }
+                else {
+                    // There is only one occurrence date; go to the last schedule within this same occurrence date.
+                }
+
+                if (targetSchedules?.length) {
+                    scrollTo(targetSchedules[targetSchedules.length - 1]);
+                }
+            }
+            else {
+                // Go to the previous schedule within this same occurrence date.
+                if (targetSchedules?.length ?? 0 > targetScheduleIndex) {
+                    scrollTo(targetSchedules[targetScheduleIndex]);
+                }
+            }
+        }
+        else if (direction == ScrollDirection.Next) {
+            if (!targetSchedules) {
+                return;
+            }
+
+            if (targetScheduleIndex > targetSchedules.length - 1) {
+                // The last schedule of a given occurrence is currently within view.
+                if (occurrenceDateCount.value > 1) {
+                    // There is more than one occurrence date; go to the first schedule of the next occurrence date.
+                    targetSchedules = scheduleElementsByOccurrenceDate.value[currentDateIndex === occurrenceDateCount.value - 1 ? 0 : currentDateIndex + 1];
+                }
+                else {
+                    // There is only one occurrece date; go to the first schedule within this same occurrence date.
+                }
+
+                if (targetSchedules?.length) {
+                    scrollTo(targetSchedules[0]);
+                }
+            }
+            else {
+                // Go to the next schedule within this same occurrence date.
+                if (targetSchedules?.length ?? 0 > targetScheduleIndex) {
+                    scrollTo(targetSchedules[targetScheduleIndex]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Scrolls to the specified element.
+     *
+     * @param element The element to scroll to.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function scrollTo(element: any): void {
+        if (!element?.$el || !snapContainer.value) {
+            return;
+        }
+
+        const elementLeft: number = element.$el.getBoundingClientRect()?.left ?? 0;
+        const snapContainerScrollLeft: number = snapContainer.value?.scrollLeft ?? 0;
+
+        snapContainer.value.scrollTo({
+            left: elementLeft + snapContainerScrollLeft
+        });
+    }
+
     // #endregion
 
     // #region Event Handlers
@@ -187,6 +312,46 @@
     function onFiltersApplied(appliedFilters: GroupSchedulerAppliedFiltersBag): void {
         filters.value = appliedFilters?.filters;
         scheduleOccurrences.value = appliedFilters.scheduleOccurrences;
+
+        nextTick(() => {
+            console.log("scrolling!");
+            if (snapContainer.value) {
+                snapContainer.value.scrollTo({
+                    left: 0
+                });
+            }
+        });
+    }
+
+    /**
+     * Adds this occurrence date's schedule elements to the local collection so we can scroll between them.
+     *
+     * @param dateIndex The index of the occurrenceDate component from which this event originated.
+     * @param scheduleElements The schedule elements that were created as children of the occurrenceDate component.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function onScheduleElementsCreated(dateIndex: number, scheduleElements: any[]): void {
+        scheduleElementsByOccurrenceDate.value[dateIndex] = scheduleElements;
+    }
+
+    /**
+     * Scrolls the previous schedule component into view.
+     *
+     * @param dateIndex The index of the occurrenceDate component from which this event originated.
+     * @param currentIndex The index of schedule component currently within view.
+     */
+    function onGoPrevious(dateIndex: number, currentIndex: number): void {
+        scrollToSchedule(dateIndex, currentIndex, ScrollDirection.Previous);
+    }
+
+    /**
+     * Scrolls the next schedule component into view.
+     *
+     * @param dateIndex The index of the occurrenceDate component from which this event originated.
+     * @param currentIndex The index of schedule component currently within view.
+     */
+    function onGoNext(dateIndex: number, currentIndex: number): void {
+        scrollToSchedule(dateIndex, currentIndex, ScrollDirection.Next);
     }
 
     // #endregion

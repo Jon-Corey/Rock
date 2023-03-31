@@ -9,16 +9,19 @@
 
         <div v-else class="schedules">
 
-            <Schedule v-for="(occurrences, key) in occurrencesBySchedule" :key="key"
+            <Schedule v-for="(occurrences, key, index) in occurrencesBySchedule" :key="key"
                       :occurrences="occurrences"
-                      :show-prev-next-buttons="scheduleCount > 1"></Schedule>
+                      :showPrevNextButtons="showPrevNextButtons"
+                      :ref="(el) => addScheduleElement(el, index)"
+                      @goPrevious="$emit('goPrevious', index)"
+                      @goNext="$emit('goNext', index)"></Schedule>
 
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { computed, PropType } from "vue";
+    import { computed, PropType, ref, watch } from "vue";
     import Schedule from "./schedule.partial.obs";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
@@ -28,8 +31,27 @@
         occurrences: {
             type: Array as PropType<GroupSchedulerOccurrenceBag[]>,
             required: true
+        },
+
+        showPrevNextButtons: {
+            type: Boolean as PropType<boolean>,
+            default: false
         }
     });
+
+    const emit = defineEmits<{
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (e: "scheduleElementsCreated", scheduleElements: any[]): void,
+        (e: "goPrevious", currentScheduleIndex: number): void,
+        (e: "goNext", currentScheduleIndex: number): void
+    }>();
+
+    // #region Values
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scheduleElements = ref<any[]>([]);
+
+    // #endregion
 
     // #region Computed Values
 
@@ -82,4 +104,28 @@
     });
 
     // #endregion
+
+    // #region Functions
+
+    /**
+     * Adds the element to the array of schedule elements.
+     *
+     * @param element The schedule element to add.
+     * @param index The index of the element's corresponding schedule within the occurrences provided to this component.
+     *  Per Vue docs: "It should be noted that the ref array does not guarantee the same order as the source array."
+     *  Hence the need to provide this element's index to know which schedule it represents.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function addScheduleElement(element: any, index: number): void {
+        scheduleElements.value[index] = element;
+
+        // Once all elements have been added, report them back to the parent component.
+        if (scheduleElements.value.length === scheduleCount.value) {
+            emit("scheduleElementsCreated", scheduleElements.value);
+        }
+    }
+
+    watch(props.occurrences, () => {
+        scheduleElements.value = [];
+    });
 </script>
