@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Rock.Attribute;
+using Rock.Security;
 using Rock.ViewModels.Blocks.Crm.FamilyPreRegistration;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
@@ -75,7 +76,7 @@ namespace Rock.Blocks.Crm
     [AttributeField(
         "Campus Schedule Attribute",
         Key = AttributeKey.CampusScheduleAttribute,
-        Description = "Allows you select a campus attribute that contains schedules for determining which dates and times for which pre-registration is available. This requires the creation of an Entity attribute for 'Campus' using a Field Type of 'Schedules'. The schedules can then be selected in the 'Edit Campus' block. The Lava merge field for this in workflows is 'ScheduleId'.",
+        Description = "Allows you to select a campus attribute that contains schedules for determining which dates and times for which pre-registration is available. This requires the creation of an Entity attribute for 'Campus' using a Field Type of 'Schedules'. The schedules can then be selected in the 'Edit Campus' block. The Lava merge field for this in workflows is 'ScheduleId'.",
         EntityTypeGuid = Rock.SystemGuid.EntityType.CAMPUS,
         IsRequired = false,
         Order = 5 )]
@@ -678,6 +679,16 @@ namespace Rock.Blocks.Crm
         /// </summary>
         private List<Guid> CampusStatusesFilter => this.GetAttributeValues( AttributeKey.CampusStatuses ).AsGuidList().Where( guid => DefinedValueCache.Get( guid ) != null ).ToList();
 
+        /// <summary>
+        /// Gets the optional unique identifier for the attribute to use for selecting a campus schedule.
+        /// </summary>
+        private Guid? CampusSchedulesAttributeGuid => this.GetAttributeValue( AttributeKey.CampusScheduleAttribute ).AsGuidOrNull();
+
+        /// <summary>
+        /// Gets the planned visit date field properties.
+        /// </summary>
+        private (bool IsOptional, bool IsHidden) PlannedVisitDateProperties => GetFieldProperties( AttributeKey.PlannedVisitDate );
+
         #endregion
 
         public override string BlockFileUrl => $"{base.BlockFileUrl}.obs";
@@ -689,14 +700,68 @@ namespace Rock.Blocks.Crm
 
         private FamilyPreRegistrationInitializationBox GetInitializationBox()
         {
-            return new FamilyPreRegistrationInitializationBox
+            var box = new FamilyPreRegistrationInitializationBox
             {
                 DefaultCampusGuid = this.DefaultCampusGuid,
+                CampusSchedulesAttributeGuid = this.CampusSchedulesAttributeGuid,
                 CampusStatusesFilter = this.CampusStatusesFilter,
                 CampusTypesFilter = this.CampusTypesFilter,
                 IsCampusOptional = this.IsCampusOptional,
                 IsCampusHidden = this.IsCampusHidden,
             };
+
+            ShowHidePlannedDatePanels( box );
+
+            return box;
+        }
+
+        /// <summary>
+        /// Chooses the planned date panel to show. Either pnlPlannedDate which only shows a date, or pnlPlannedSchedule which provides a list of date and times for a campus' schedule.
+        /// </summary>
+        private void ShowHidePlannedDatePanels( FamilyPreRegistrationInitializationBox box )
+        {
+            (box.IsPlannedVisitDateOptional, box.IsPlannedVisitDatePanelHidden) = this.PlannedVisitDateProperties;
+
+            box.IsPlannedSchedulePanelHidden = true;
+
+            if ( !box.CampusSchedulesAttributeGuid.HasValue )
+            {
+                // There is no campus schedules attribute from which to select schedules, so show the visit date field by itself.
+                return;
+            }
+
+            // Make sure the campus schedules attribute uses the Schedules field type and display the date panel if not.
+            var campusSchedulesAttribute = AttributeCache.Get( box.CampusSchedulesAttributeGuid.Value );
+            if ( campusSchedulesAttribute?.FieldType == null || campusSchedulesAttribute.FieldType.Guid != Rock.SystemGuid.FieldType.SCHEDULES.AsGuidOrNull() )
+            {
+                // If the user has edit permission then display an error message so the configuration can be fixed
+                if ( this.BlockCache.IsAuthorized( Authorization.EDIT, this.GetCurrentPerson() ) )
+                {
+                    box.ErrorMessage = "The campus attribute for schedules is not using the field type of 'Schedules' or a value was not specified. Please adjust this.";
+                }
+
+                // Since the campusScheduleAttribute is not correct just display the date panel.
+                box.IsPlannedVisitDatePanelHidden = false;
+                return;
+            }
+
+            // If there are multiple campuses and the campus picker is not visible then just display the date panel.
+            if ( this.IsCampusHidden && CampusCache.All( false ).Count > 1 )
+            {
+                // If the user has edit permission then display an error message so the configuration can be fixed.
+                if ( this.BlockCache.IsAuthorized( Authorization.EDIT, this.GetCurrentPerson() ) )
+                {
+                    box.ErrorMessage = "In order to show campus schedules the campus has to be shown so it can be selected. Change this block's 'Show Campus' attribute to 'Yes'.";
+                }
+
+                // Since the campus is not available for the campusScheduleAttribute just display the date panel.
+                box.IsPlannedVisitDatePanelHidden = false;
+                return;
+            }
+
+            // Display the schedule panel if there are multiple campuses and the campus picker is shown or if there is a single campus.
+            box.IsPlannedVisitDatePanelHidden = true;
+            box.IsPlannedSchedulePanelHidden = false;
         }
 
         //        #region Base Control Methods
@@ -1718,63 +1783,15 @@ namespace Rock.Blocks.Crm
         //            CreateChildrenControls( true );
         //        }
 
-        //        /// <summary>
-        //        /// Chooses the planned date panel to show. Either pnlPlannedDate which only shows a date, or pnlPlannedSchedule which provides a list of date and times for a campus' schedule.
-        //        /// </summary>
-        //        private void ShowHidePlannedDatePanels()
-        //        {
-        //            bool dateRequired = SetControl( AttributeKey.PlannedVisitDate, pnlPlannedDate, null );
-        //            dpPlannedDate.Required = dateRequired;
-        //            ddlScheduleDate.Required = dateRequired;
-        //            ddlScheduleTime.Required = dateRequired;
+        private (bool isOptional, bool isHidden) GetFieldProperties( string attributeKey )
+        {
+            var value = this.GetAttributeValue( attributeKey );
 
-        //            string scheduleGuid = GetAttributeValue( AttributeKey.CampusScheduleAttribute );
-        //            if ( scheduleGuid.IsNullOrWhiteSpace() )
-        //            {
-        //                pnlPlannedSchedule.Visible = false;
-        //                return;
-        //            }
+            var isOptional = !string.Equals( value, "Required", StringComparison.OrdinalIgnoreCase );
+            var isHidden = string.Equals( value, "Hide", StringComparison.OrdinalIgnoreCase );
 
-        //            // Make sure the attribute uses the Schedules field type and display the date panel if not
-        //            var campusScheduleAttribute = AttributeCache.Get( scheduleGuid );
-        //            if ( campusScheduleAttribute?.FieldType == null || campusScheduleAttribute.FieldType.Guid != Rock.SystemGuid.FieldType.SCHEDULES.AsGuidOrNull() )
-        //            {
-        //                // If the user has edit permission then display an error message so the configuration can be fixed
-        //                if ( IsUserAuthorized( Authorization.EDIT ) )
-        //                {
-        //                    nbError.Text = "The campus attribute for schedules is not using the field type of 'Schedules' or a value was not specified. Please adjust this.";
-        //                    nbError.Visible = true;
-        //                }
-
-        //                // Since the campusScheduleAttribute is not correct just display the date panel
-        //                pnlPlannedDate.Visible = true;
-        //                pnlPlannedSchedule.Visible = false;
-        //                return;
-        //            }
-
-        //            // If there are multiple campuses and the campus picker is not visible then just display the date panel
-        //            if ( CampusCache.All( false ).Count > 1 )
-        //            {
-        //                if ( !GetAttributeValue( AttributeKey.ShowCampus ).AsBoolean() )
-        //                {
-        //                    // If the user has edit permission then display an error message so the configuration can be fixed
-        //                    if ( IsUserAuthorized( Authorization.EDIT ) )
-        //                    {
-        //                        nbError.Text = "In order to show campus schedules the campus has to be shown so it can be selected. Change the this block's 'Show Campus' attribute to 'Yes'.";
-        //                        nbError.Visible = true;
-        //                    }
-
-        //                    // Since the campus is not available for the campusScheduleAttribute just display the date panel
-        //                    pnlPlannedDate.Visible = true;
-        //                    pnlPlannedSchedule.Visible = false;
-        //                    return;
-        //                }
-        //            }
-
-        //            // Display the schedule panel if there are multiple campuses and the campus picker is shown or if there is a single campus
-        //            pnlPlannedDate.Visible = false;
-        //            pnlPlannedSchedule.Visible = true;
-        //        }
+            return (isOptional, isHidden);
+        }
 
         //        /// <summary>
         //        /// Populates ddlScheduleDate with a set of dates for the campus schedules and the configured number of days. The display is formatted but the value is unformated so it can easily be used to get schedules that match it.

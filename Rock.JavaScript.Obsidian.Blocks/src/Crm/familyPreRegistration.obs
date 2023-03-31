@@ -19,16 +19,30 @@
                                 :rules="!config.isCampusOptional ? ['required'] : []"
                                 :showBlankItem="true"
                                  />
-                            <div class="col-md-5" id="pnlPlannedDate">
-                                <DatePicker id="dpPlannedDate" label="Planned Visit Date" :disallowPastDateSelection="true" />
+                            <div v-if="!config.isPlannedVisitDatePanelHidden" class="col-md-5" id="pnlPlannedDate">
+                                <DatePicker
+                                    id="dpPlannedDate"
+                                    :disallowPastDateSelection="true"
+                                    label="Planned Visit Date"
+                                    :rules="!config.isPlannedVisitDateOptional ? ['required'] : []" />
                             </div>
-                            <div class="col-md-7" id="pnlPlannedSchedule" v-show="false"><!-- TODO JMH Find when this should be visible (box property). -->
+                            <div v-if="!config.isPlannedSchedulePanelHidden" class="col-md-7" id="pnlPlannedSchedule">
                                 <div class="row">
                                     <div class="col-sm-6">
-                                        <DropDownList v-model="selectedScheduleGuids" id="ddlScheduleDate" :items="scheduleDateItems" label="Planned Visit Date" />
+                                        <DropDownList
+                                            v-model="selectedScheduleGuids"
+                                            id="ddlScheduleDate"
+                                            :items="scheduleDateItems"
+                                            label="Planned Visit Date"
+                                            :rules="!config.isPlannedVisitDateOptional ? ['required'] : []" />
                                     </div>
                                     <div class="col-sm-6">
-                                        <DropDownList v-model="selectedTimeGuids" id="ddlScheduleTime" :items="scheduleItemItems" label="Planned Visit Time" />
+                                        <DropDownList
+                                            v-model="selectedTimeGuids"
+                                            id="ddlScheduleTime"
+                                            :items="scheduleItemItems"
+                                            label="Planned Visit Time"
+                                            :rules="!config.isPlannedVisitDateOptional ? ['required'] : []" />
                                     </div>
                                 </div>
                             </div>

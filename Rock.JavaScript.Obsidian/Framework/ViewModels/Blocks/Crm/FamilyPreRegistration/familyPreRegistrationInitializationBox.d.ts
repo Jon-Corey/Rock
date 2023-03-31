@@ -25,6 +25,8 @@ import { Guid } from "@Obsidian/Types";
 
 /** The box that contains all the initialization information for the Family Pre-Registration block. */
 export type FamilyPreRegistrationInitializationBox = {
+    campusSchedulesAttributeGuid?: Guid | null;
+
     /** Filters the campus field by campus statuses. */
     campusStatusesFilter?: Guid[] | null;
 
@@ -51,6 +53,12 @@ export type FamilyPreRegistrationInitializationBox = {
      * If the campus field is required and there is only one active campus, then the campus field will not show and the single campus will be selected.
      */
     isCampusOptional: boolean;
+
+    isPlannedSchedulePanelHidden: boolean;
+
+    isPlannedVisitDateOptional: boolean;
+
+    isPlannedVisitDatePanelHidden: boolean;
 
     /** Gets or sets the navigation urls. */
     navigationUrls?: Record<string, string> | null;

@@ -51,5 +51,9 @@ namespace Rock.ViewModels.Blocks.Crm.FamilyPreRegistration
         /// Filters the campus field by campus statuses.
         /// </summary>
         public List<Guid> CampusStatusesFilter { get; set; }
+        public bool IsPlannedVisitDatePanelHidden { get; set; }
+        public bool IsPlannedVisitDateOptional { get; set; }
+        public Guid? CampusSchedulesAttributeGuid { get; set; }
+        public bool IsPlannedSchedulePanelHidden { get; set; }
     }
 }
