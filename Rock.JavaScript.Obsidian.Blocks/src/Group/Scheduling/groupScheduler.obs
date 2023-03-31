@@ -30,19 +30,37 @@
 
                     <div class="d-flex">
                         <div class="dropdown">
-                            <button class="btn btn-default btn-square btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-caret-down"></i></button>
+                            <button type="button"
+                                    class="btn btn-default btn-square btn-sm"
+                                    data-toggle="dropdown"
+                                    aria-haspopup="true"
+                                    aria-expanded="false">
+                                <i class="fa fa-ellipsis-v"></i>
+                            </button>
                             <ul class="dropdown-menu dropdown-menu-right">
                                 <li>
-                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-envelope-o"></i> Send Now</button>
+                                    <button type="button"
+                                            class="dropdown-item btn-link text-nowrap">
+                                        <i class="fa fa-envelope-o"></i> Send Now
+                                    </button>
                                 </li>
                                 <li>
-                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-clone"></i> Clone Schedules</button>
+                                    <button type="button"
+                                            class="dropdown-item btn-link text-nowrap">
+                                        <i class="fa fa-clone"></i> Clone Schedules
+                                    </button>
                                 </li>
                                 <li>
-                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-calendar-check"></i> Rosters</button>
+                                    <button type="button"
+                                            class="dropdown-item btn-link text-nowrap">
+                                        <i class="fa fa-calendar-check"></i> Rosters
+                                    </button>
                                 </li>
                                 <li>
-                                    <button type="button" class="dropdown-item btn-link text-nowrap"><i class="fa fa-magic"></i> Auto Schedule</button>
+                                    <button type="button"
+                                            class="dropdown-item btn-link text-nowrap">
+                                        <i class="fa fa-magic"></i> Auto Schedule
+                                    </button>
                                 </li>
                             </ul>
                         </div>
@@ -71,16 +89,17 @@
             </div>
         </div>
 
-        <SelectFilters v-model:isVisible="isSelectFiltersVisible"
+        <SelectFilters v-model:isVisible="isSelectingFilters"
                        :appliedFilters="appliedFilters"
                        @filtersApplied="onFiltersApplied" />
     </div>
 </template>
 
 <script setup lang="ts">
-    import { computed, nextTick, ref } from "vue";
+    import { computed, nextTick, provide, ref } from "vue";
     import OccurrenceDate from "./GroupScheduler/occurrenceDate.partial.obs";
     import SelectFilters from "./GroupScheduler/selectFilters.partial.obs";
+    import { ProvideInjectKey } from "./GroupScheduler/types.partial";
     import Alert from "@Obsidian/Controls/alert.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
@@ -90,6 +109,7 @@
     import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
     import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
+    import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
     import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const config = useConfigurationValues<GroupSchedulerInitializationBox>();
@@ -109,9 +129,10 @@
     const scheduleElementsByOccurrenceDate = ref<Record<number, any[]>>({});
 
     const filters = ref<GroupSchedulerFiltersBag | null | undefined>(config.filters);
+    const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null | undefined>(config.resourceSettings);
     const scheduleOccurrences = ref<GroupSchedulerOccurrenceBag[] | null | undefined>(config.scheduleOccurrences);
 
-    const isSelectFiltersVisible = ref(false);
+    const isSelectingFilters = ref(false);
 
     // #endregion
 
@@ -301,7 +322,7 @@
      * Handles the click event of the "Filters..." elements, to show the `SelectFilters` component.
      */
     function onSelectFiltersClick(): void {
-        isSelectFiltersVisible.value = true;
+        isSelectingFilters.value = true;
     }
 
     /**
@@ -356,6 +377,7 @@
 
     // #endregion
 
+    provide(ProvideInjectKey.resourceSettings, resourceSettings);
     provideSecurityGrant(securityGrant);
 
     onConfigurationValuesChanged(reloadBlock);

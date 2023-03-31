@@ -51,7 +51,8 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, PropType, ref } from "vue";
+    import { computed, inject, PropType, Ref, ref } from "vue";
+    import { ProvideInjectKey } from "./types.partial";
     import Alert from "@Obsidian/Controls/alert.obs";
     import ButtonGroup from "@Obsidian/Controls/buttonGroup.obs";
     import DataViewPicker from "@Obsidian/Controls/dataViewPicker";
@@ -59,6 +60,7 @@
     import Modal from "@Obsidian/Controls/modal";
     import GroupPicker from "@Obsidian/Controls/groupPicker";
     import { GroupMemberMatchType, GroupMemberMatchTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/groupMemberMatchType";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
     import { ResourceListSourceType, ResourceListSourceTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
@@ -74,8 +76,8 @@
             required: true
         },
 
-        resourceSettings: {
-            type: Object as PropType<GroupSchedulerResourceSettingsBag | null | undefined>,
+        occurrence: {
+            type: Object as PropType<GroupSchedulerOccurrenceBag>,
             required: true
         }
     });
@@ -88,6 +90,7 @@
     // #region Values
 
     const isVisible = useVModelPassthrough(props, "isVisible", emit);
+    const resourceSettings = inject<Ref<GroupSchedulerResourceSettingsBag | null | undefined>>(ProvideInjectKey.resourceSettings);
 
     const sourceType = ref("0");
     const matchType = ref("0");
@@ -100,7 +103,7 @@
     // #region Computed Values
 
     const resourceListSourceTypeItems = computed((): { text: string, value: string }[] => {
-        return props.resourceSettings?.enabledResourceListSourceTypes?.map((value: ResourceListSourceType) => ({
+        return resourceSettings?.value?.enabledResourceListSourceTypes?.map((value: ResourceListSourceType) => ({
             text: ResourceListSourceTypeDescription[value],
             value: value.toString()
         })) ?? [];

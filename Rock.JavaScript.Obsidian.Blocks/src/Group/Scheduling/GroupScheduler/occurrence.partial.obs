@@ -30,11 +30,15 @@
                 <ProgressBar :progress="scheduleProgress"></ProgressBar>
                 <RockButton type="button"
                             class="circle-plus"
-                            :disabled="isLoadingResources">
+                            :disabled="isLoadingResources"
+                            @click="onSelectIndividualsClick">
                     <i class="fa fa-plus"></i>
                 </RockButton>
             </li>
         </ul>
+
+        <SelectIndividuals v-model:isVisible="isSelectingIndividuals"
+                           :occurrence="occurrence"></SelectIndividuals>
 
     </div>
 </template>
@@ -43,6 +47,7 @@
     import { computed, PropType, ref } from "vue";
     import ProgressBar from "./progressBar.partial.obs";
     import ScheduledResource from "./scheduledResource.partial.obs";
+    import SelectIndividuals from "./selectIndividuals.partial.obs";
     import { IScheduleProgress, ISchedulerResourceAttend } from "./types.partial";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
@@ -59,10 +64,10 @@
     });
 
     const http = useHttp();
-    const apiBaseUrl = "/api/Attendances";
 
     // #region Values
 
+    const isSelectingIndividuals = ref(false);
     const isLoadingResources = ref(true);
     const getResourcesWarningMessage = ref("");
     const updateResourceWarningMessage = ref("");
@@ -130,7 +135,7 @@
         getResourcesWarningMessage.value = "";
         updateResourceWarningMessage.value = "";
 
-        const result = await http.get<ISchedulerResourceAttend[]>(`${apiBaseUrl}/GetAttendingSchedulerResources?attendanceOccurrenceId=${attendanceOccurrenceId.value}`);
+        const result = await http.get<ISchedulerResourceAttend[]>(`/api/Attendances/GetAttendingSchedulerResources?attendanceOccurrenceId=${attendanceOccurrenceId.value}`);
         isLoadingResources.value = false;
 
         if (!result.isSuccess) {
@@ -150,6 +155,13 @@
      */
     function onResourceUpdated(): void {
         getCurrentResources();
+    }
+
+    /**
+     * Handles the click event of the select individuals button.
+     */
+    function onSelectIndividualsClick(): void {
+        isSelectingIndividuals.value = true;
     }
 
     // #endregion

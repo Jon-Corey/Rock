@@ -17,6 +17,8 @@
 // </copyright>
 //
 
+import { SchedulerResourceGroupMemberFilterType } from "@Obsidian/Enums/Event/schedulerResourceGroupMemberFilterType";
+
 /**
  * Information about a scheduler resource assignment for the group scheduler.
  * Represenation of: https://github.com/SparkDevNetwork/Rock/blob/8dfb45edcbf4f166d483f6e96ed39806f3ca6a1b/Rock/Model/Event/Attendance/AttendanceService.cs#L3107
@@ -149,6 +151,42 @@ export interface ISchedulerResourceAttend extends ISchedulerResource {
 }
 
 /**
+ * Request parameters indicating the resources who should be presented for a group scheduler occurrence.
+ * Representation of: https://github.com/SparkDevNetwork/Rock/blob/8dfb45edcbf4f166d483f6e96ed39806f3ca6a1b/Rock/Model/Event/Attendance/AttendanceService.cs#L3486
+ */
+export interface ISchedulerResourceParameters {
+    /** The attendance occurrence group identifier. */
+    AttendanceOccurrenceGroupId: number,
+
+    /** The attendance occurrence schedule IDs. */
+    AttendanceOccurrenceScheduleIds: number[],
+
+    /** The attendance occurrence location IDs */
+    AttendanceOccurrenceLocationIds: number[],
+
+    /** The attendance occurrence Sunday date. */
+    AttendanceOccurrenceSundayDate: string,
+
+    /** The resource group identifier. */
+    ResourceGroupId?: number | null,
+
+    /** If we just need the data for a specific person. */
+    LimitToPersonId?: number | null,
+
+    /** The type of filter that should be applied to group members when sourcing scheduler resources. */
+    GroupMemberFilterType?: SchedulerResourceGroupMemberFilterType | null,
+
+    /** TBD */
+    // ResourceListSourceType?: GroupSchedulerResourceListSourceType | null,
+
+    /** The resource data view identifier. */
+    ResourceDataViewId?: number | null,
+
+    /** The resource additional person IDs. */
+    ResourceAdditionalPersonIds?: number[] | null
+}
+
+/**
  * Information about a group scheduler occurrence's progress (towards filling the specified min, desired and max capcacities).
  */
 export interface IScheduleProgress {
@@ -189,3 +227,10 @@ export enum ResourceAction {
     UpdatePreference = 4,
     Remove = 5
 }
+
+/**
+ * The provide/inject keys to use for the group scheduler component hierarchy.
+ */
+export const ProvideInjectKey = {
+    resourceSettings: "GroupSchedulerResourceSettings"
+};
