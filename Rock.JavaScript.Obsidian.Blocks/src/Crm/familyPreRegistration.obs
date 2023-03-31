@@ -2,7 +2,7 @@
 <!-- TODO JMH remove id attributes? -->
 <template>
     <div ID="upnlContent">
-        <NotificationBox id="nbError" alertType="danger" />
+        <NotificationBox v-if="errorText" id="nbError" alertType="danger" :heading="errorTitle ?? undefined">{{ errorText }}</NotificationBox>
         <RockForm>
             <Panel type="block" title="Family Pre-Registration">
                 <template #default>
@@ -34,15 +34,17 @@
                                             id="ddlScheduleDate"
                                             :items="scheduleDateItems"
                                             label="Planned Visit Date"
-                                            :rules="!config.isPlannedVisitDateOptional ? ['required'] : []" />
+                                            :rules="!config.isPlannedVisitDateOptional ? ['required'] : []"
+                                            :showBlankItem="config.isPlannedVisitDateOptional" />
                                     </div>
                                     <div class="col-sm-6">
                                         <DropDownList
                                             v-model="selectedTimeGuids"
                                             id="ddlScheduleTime"
-                                            :items="scheduleItemItems"
+                                            :items="scheduleTimeItems"
                                             label="Planned Visit Time"
-                                            :rules="!config.isPlannedVisitDateOptional ? ['required'] : []" />
+                                            :rules="!config.isPlannedVisitDateOptional ? ['required'] : []"
+                                            :showBlankItem="config.isPlannedVisitDateOptional" />
                                     </div>
                                 </div>
                             </div>
@@ -241,7 +243,7 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, ref } from "vue";
+    import { computed, nextTick, ref } from "vue";
     import CampusPicker from "@Obsidian/Controls/campusPicker.obs";
     import DatePicker from "@Obsidian/Controls/datePicker.obs";
     import DropDownList from "@Obsidian/Controls/dropDownList";
@@ -249,19 +251,24 @@
     import Panel from "@Obsidian/Controls/panel";
     import RockButton from "@Obsidian/Controls/rockButton";
     import RockForm from "@Obsidian/Controls/rockForm";
-    import { onConfigurationValuesChanged, useConfigurationValues, useReloadBlock } from "@Obsidian/Utility/block";
+    import { onConfigurationValuesChanged, useConfigurationValues, useInvokeBlockAction, useReloadBlock } from "@Obsidian/Utility/block";
     import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
     import { FamilyPreRegistrationInitializationBox } from "@Obsidian/ViewModels/Blocks/Crm/FamilyPreRegistration/familyPreRegistrationInitializationBox";
+    import { FamilyPreRegistrationGetScheduleDatesRequestBag } from "@Obsidian/ViewModels/Blocks/Crm/FamilyPreRegistration/familyPreRegistrationGetScheduleDatesRequestBag";
+    import { FamilyPreRegistrationGetScheduleDatesResponseBag } from "@Obsidian/ViewModels/Blocks/Crm/FamilyPreRegistration/familyPreRegistrationGetScheduleDatesResponseBag";
+    import { FamilyPreRegistrationScheduleDateBag } from "@Obsidian/ViewModels/Blocks/Crm/FamilyPreRegistration/familyPreRegistrationScheduleDateBag";
 
     const config = useConfigurationValues<FamilyPreRegistrationInitializationBox>();
+    const invokeBlockAction = useInvokeBlockAction();
 
     //#region Values
 
+    const errorTitle = ref<string | null | undefined>();
+    const errorText = ref<string | null | undefined>(config.errorMessage);
     const internalCampusListItemBag = ref<ListItemBag | null | undefined>(config.defaultCampusGuid ? { value: config.defaultCampusGuid } : undefined);
-    const internalSelectedScheduleGuids = ref<string | string[]>([]);
+    const selectedScheduleGuids = ref<string | string[]>([]);
     const selectedTimeGuids = ref<string | string[]>([]);
-    const scheduleDateItems = ref<ListItemBag[]>([]);
-    const scheduleItemItems = ref<ListItemBag[]>([]);
+    const scheduleDateItems = ref<FamilyPreRegistrationScheduleDateBag[]>([]);
 
     //#endregion
 
@@ -274,16 +281,13 @@
         set(newValue: ListItemBag | null | undefined) {
             // TODO JMH Update the ddlScheduleDate and ddlScheduleTime when the campus is changed.
             internalCampusListItemBag.value = newValue;
+            updateScheduleDateControl();
         }
     });
-    const selectedScheduleGuids = computed<string | string[]>({
-        get() {
-            return internalSelectedScheduleGuids.value;
-        },
-        set(newValue: string | string[]) {
-            // TODO JMH Populates ddlScheduleTime with a set of schedule times for the selected date. The Time is shown but the value is the schedule guid.
-            internalSelectedScheduleGuids.value = newValue;
-         }
+    const scheduleTimeItems = computed<ListItemBag[]>(() => {
+        const scheduleDateItem = scheduleDateItems.value.find(s => s.value === selectedScheduleGuids.value);
+
+        return scheduleDateItem?.scheduleTimes ?? [];
     });
 
     //#endregion
@@ -311,7 +315,48 @@
     //         }
     //     });
     // }
+
+    async function updateScheduleDateControl(): Promise<void> {
+        scheduleDateItems.value = [];
+
+        if (config.isPlannedSchedulePanelHidden || (!config.isCampusHidden && !campusListItemBag.value)) {
+            return;
+        }
+
+        const bag: FamilyPreRegistrationGetScheduleDatesRequestBag = {
+            campusGuid: campusListItemBag.value?.value
+        };
+
+        const result = await invokeBlockAction<FamilyPreRegistrationGetScheduleDatesResponseBag>("GetScheduleDates", { bag });
+
+        if (result?.data) {
+            setError(result.data.errorText, result.data.errorTitle);
+
+            if ([true, false].some(b => b === result.data?.isPlannedDatePanelHidden)) {
+                config.isPlannedVisitDatePanelHidden = !!result.data.isPlannedDatePanelHidden;
+            }
+
+            if ([true, false].some(b => b === result.data?.isPlannedSchedulePanelHidden)) {
+                config.isPlannedSchedulePanelHidden = !!result.data.isPlannedSchedulePanelHidden;
+            }
+
+            scheduleDateItems.value = result.data.scheduleDates ?? [];
+        }
+        else if (result?.errorMessage) {
+            setError(result.errorMessage);
+        }
+    }
+
+    function setError(text?: string | null, title?: string | null): void {
+        errorTitle.value = title;
+        errorText.value = text;
+    }
+
     //#endregion
 
     onConfigurationValuesChanged(useReloadBlock());
+
+    if (!config.isPlannedSchedulePanelHidden) {
+        nextTick(() => updateScheduleDateControl());
+    }
 </script>

@@ -20,8 +20,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Rock.Attribute;
+using Rock.Data;
+using Rock.Model;
 using Rock.Security;
 using Rock.ViewModels.Blocks.Crm.FamilyPreRegistration;
+using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
@@ -653,8 +656,6 @@ namespace Rock.Blocks.Crm
             return "col-sm-" + ( columns * 2 ).ToString();
         }
 
-        private List<OccurrenceSchedule> OccurrenceSchedules { get; set; }
-
         /// <summary>
         /// An optional campus to use by default when adding a new family.
         private Guid? DefaultCampusGuid => this.GetAttributeValue( AttributeKey.DefaultCampus ).AsGuidOrNull();
@@ -698,6 +699,133 @@ namespace Rock.Blocks.Crm
             return GetInitializationBox();
         }
 
+        #region Block Actions
+
+        [BlockAction("GetScheduleDates")]
+        public BlockActionResult GetPlannedScheduleDates( FamilyPreRegistrationGetScheduleDatesRequestBag bag )
+        {
+            if ( bag == null )
+            {
+                return ActionBadRequest();
+            }
+
+            var response = new FamilyPreRegistrationGetScheduleDatesResponseBag
+            {
+                ScheduleDates = new List<FamilyPreRegistrationScheduleDateBag>()
+            };
+
+            var (_, _, isPlannedSchedulePanelHidden, errormessage ) = ShowHidePlannedDatePanels();
+            var (isPlannedVisitDateOptional, _) = this.PlannedVisitDateProperties;
+
+            var isCampusVisible = !this.IsCampusHidden;
+
+            if ( isPlannedSchedulePanelHidden || ( isCampusVisible && !bag.CampusGuid.HasValue ) )
+            {
+                // If the schedule panel is hidden or no campus is selected, then return empty schedule options.
+                return ActionOk( response );
+            }
+
+            var occurrenceSchedules = new List<OccurrenceSchedule>();
+
+            if ( !isCampusVisible )
+            {
+                if ( CampusCache.All( includeInactive: false ).Count == 1 )
+                {
+                    // If there is just one active campus then use that one.
+                    bag.CampusGuid = CampusCache.All( false )[0].Guid;
+                }
+                else
+                {
+                    // Rock should show an error before getting here, but just in case... If there are multiple campuses then we will need the campus to get the schedule.
+                    // If the user has edit permission display an error message so the configuration can be fixed.
+                    if ( this.BlockCache.IsAuthorized( Authorization.EDIT, this.GetCurrentPerson() ) )
+                    {
+                        response.ErrorTitle = "Must Show Campus";
+                        response.ErrorText = "In order to show campus schedules the campus has to be shown so it can be selected. Change this block's 'Show Campus' attribute to 'Yes'. A user without edit permission to this block will just see \"Planned Visit Date\".";
+                        return ActionOk( response );
+                    }
+
+                    // Since we can't show the schedules and this is not a user authorized to edit the block just show the date.
+                    response.IsPlannedDatePanelHidden = false;
+                    response.IsPlannedSchedulePanelHidden = true;
+
+                    return ActionOk( response );
+                }
+            }
+
+            var campusScheduleAttributeKey = AttributeCache.Get( this.CampusSchedulesAttributeGuid.Value ).Key;
+            var campusScheduleAttributeValue = CampusCache.Get( bag.CampusGuid.Value )?.GetAttributeValue( campusScheduleAttributeKey );
+
+            if ( campusScheduleAttributeValue.IsNullOrWhiteSpace() )
+            {
+                // If the user has edit permission then display an error message so the configuration can be fixed.
+                if ( this.BlockCache.IsAuthorized( Authorization.EDIT, this.GetCurrentPerson() ) )
+                {
+                    response.ErrorTitle = "Missing Campus Schedule attribute.";
+                    response.ErrorText = "This requires the creation of an Entity attribute for 'Campus' using a Field Type of 'Schedules'. The schedules can then be selected in the 'Edit Campus' block. A user without edit permission to this block will just see \"Planned Visit Date\".";
+                    
+                    return ActionOk( response );
+                }
+
+                // Since we can't show the schedules and this is not a user authorized to edit the block just show the date.
+                response.IsPlannedDatePanelHidden = false;
+                response.IsPlannedSchedulePanelHidden = true;
+
+                return ActionOk( response );
+            }
+
+            var scheduleDates = new HashSet<DateTime>();
+
+            using ( var rockContext = new RockContext() )
+            {
+                var schedules = campusScheduleAttributeValue.Split( ',' ).Select( g => new ScheduleService( rockContext ).Get( g.AsGuid() ) );
+                var daysAhead = GetAttributeValue( AttributeKey.ScheduledDaysAhead ).AsIntegerOrNull() ?? 28;
+
+                foreach ( var schedule in schedules )
+                {
+                    var occurrences = schedule.GetScheduledStartTimes( RockDateTime.Today, RockDateTime.Today.AddDays( daysAhead ) ).ToList();
+                    foreach ( var occurrence in occurrences )
+                    {
+                        occurrenceSchedules.Add( new OccurrenceSchedule { IcalOccurrenceDateTime = occurrence, ScheduleGuid = schedule.Guid } );
+                        scheduleDates.Add( occurrence.Date );
+                    }
+                }
+            }
+
+            var sortedScheduleDates = scheduleDates.ToList();
+            sortedScheduleDates.Sort();
+
+            foreach ( var sortedScheduleDate in sortedScheduleDates )
+            {
+                var scheduleDate = new FamilyPreRegistrationScheduleDateBag
+                {
+                    Text = sortedScheduleDate.ToString( "dddd, MM/dd" ),
+                    Value = sortedScheduleDate.ToString( "s" ),
+                    ScheduleTimes = new List<ListItemBag>()
+                };
+
+                var scheduleOccurrencesForDate = occurrenceSchedules.Where( o => o.IcalOccurrenceDateTime.Date == sortedScheduleDate ).ToList();
+                scheduleOccurrencesForDate.Sort( ( a, b ) => a.IcalOccurrenceDateTime.CompareTo( b.IcalOccurrenceDateTime ) );
+
+                foreach ( var scheduleOccurrenceForDate in scheduleOccurrencesForDate )
+                {
+                    scheduleDate.ScheduleTimes.Add( new ListItemBag
+                    {
+                        Text = scheduleOccurrenceForDate.IcalOccurrenceDateTime.ToString( "h:mm tt" ),
+                        Value = scheduleOccurrenceForDate.ScheduleGuid.ToString()
+                    } );
+                }
+
+                response.ScheduleDates.Add( scheduleDate );
+            }
+
+            return ActionOk( response );
+        }
+
+        #endregion
+
+        #region Private Methods
+
         private FamilyPreRegistrationInitializationBox GetInitializationBox()
         {
             var box = new FamilyPreRegistrationInitializationBox
@@ -710,7 +838,7 @@ namespace Rock.Blocks.Crm
                 IsCampusHidden = this.IsCampusHidden,
             };
 
-            ShowHidePlannedDatePanels( box );
+            ( box.IsPlannedVisitDateOptional, box.IsPlannedVisitDatePanelHidden, box.IsPlannedSchedulePanelHidden, box.ErrorMessage ) = ShowHidePlannedDatePanels();
 
             return box;
         }
@@ -718,31 +846,36 @@ namespace Rock.Blocks.Crm
         /// <summary>
         /// Chooses the planned date panel to show. Either pnlPlannedDate which only shows a date, or pnlPlannedSchedule which provides a list of date and times for a campus' schedule.
         /// </summary>
-        private void ShowHidePlannedDatePanels( FamilyPreRegistrationInitializationBox box )
+        private ( bool IsPlannedVisitDateOptional, bool IsPlannedVisitDatePanelHidden, bool IsPlannedSchedulePanelHidden, string errorMessage ) ShowHidePlannedDatePanels()
         {
-            (box.IsPlannedVisitDateOptional, box.IsPlannedVisitDatePanelHidden) = this.PlannedVisitDateProperties;
+            var (isPlannedVisitDateOptional, isPlannedVisitDatePanelHidden) = this.PlannedVisitDateProperties;
 
-            box.IsPlannedSchedulePanelHidden = true;
+            var isPlannedSchedulePanelHidden = true;
 
-            if ( !box.CampusSchedulesAttributeGuid.HasValue )
+            string errorMessage = null;
+
+            var campusSchedulesAttributeGuid = this.CampusSchedulesAttributeGuid;
+
+            if ( !campusSchedulesAttributeGuid.HasValue )
             {
                 // There is no campus schedules attribute from which to select schedules, so show the visit date field by itself.
-                return;
+                return (isPlannedVisitDateOptional, isPlannedVisitDatePanelHidden, isPlannedSchedulePanelHidden, errorMessage);
             }
 
             // Make sure the campus schedules attribute uses the Schedules field type and display the date panel if not.
-            var campusSchedulesAttribute = AttributeCache.Get( box.CampusSchedulesAttributeGuid.Value );
+            var campusSchedulesAttribute = AttributeCache.Get( campusSchedulesAttributeGuid.Value );
             if ( campusSchedulesAttribute?.FieldType == null || campusSchedulesAttribute.FieldType.Guid != Rock.SystemGuid.FieldType.SCHEDULES.AsGuidOrNull() )
             {
                 // If the user has edit permission then display an error message so the configuration can be fixed
                 if ( this.BlockCache.IsAuthorized( Authorization.EDIT, this.GetCurrentPerson() ) )
                 {
-                    box.ErrorMessage = "The campus attribute for schedules is not using the field type of 'Schedules' or a value was not specified. Please adjust this.";
+                    errorMessage = "The campus attribute for schedules is not using the field type of 'Schedules' or a value was not specified. Please adjust this.";
                 }
 
                 // Since the campusScheduleAttribute is not correct just display the date panel.
-                box.IsPlannedVisitDatePanelHidden = false;
-                return;
+                isPlannedVisitDatePanelHidden = false;
+
+                return (isPlannedVisitDateOptional, isPlannedVisitDatePanelHidden, isPlannedSchedulePanelHidden, errorMessage);
             }
 
             // If there are multiple campuses and the campus picker is not visible then just display the date panel.
@@ -751,17 +884,20 @@ namespace Rock.Blocks.Crm
                 // If the user has edit permission then display an error message so the configuration can be fixed.
                 if ( this.BlockCache.IsAuthorized( Authorization.EDIT, this.GetCurrentPerson() ) )
                 {
-                    box.ErrorMessage = "In order to show campus schedules the campus has to be shown so it can be selected. Change this block's 'Show Campus' attribute to 'Yes'.";
+                    errorMessage = "In order to show campus schedules the campus has to be shown so it can be selected. Change this block's 'Show Campus' attribute to 'Yes'.";
                 }
 
                 // Since the campus is not available for the campusScheduleAttribute just display the date panel.
-                box.IsPlannedVisitDatePanelHidden = false;
-                return;
+                isPlannedVisitDatePanelHidden = false;
+
+                return (isPlannedVisitDateOptional, isPlannedVisitDatePanelHidden, isPlannedSchedulePanelHidden, errorMessage);
             }
 
             // Display the schedule panel if there are multiple campuses and the campus picker is shown or if there is a single campus.
-            box.IsPlannedVisitDatePanelHidden = true;
-            box.IsPlannedSchedulePanelHidden = false;
+            isPlannedVisitDatePanelHidden = true;
+            isPlannedSchedulePanelHidden = false;
+
+            return (isPlannedVisitDateOptional, isPlannedVisitDatePanelHidden, isPlannedSchedulePanelHidden, errorMessage);
         }
 
         //        #region Base Control Methods
@@ -1793,107 +1929,7 @@ namespace Rock.Blocks.Crm
             return (isOptional, isHidden);
         }
 
-        //        /// <summary>
-        //        /// Populates ddlScheduleDate with a set of dates for the campus schedules and the configured number of days. The display is formatted but the value is unformated so it can easily be used to get schedules that match it.
-        //        /// </summary>
-        //        private void SetScheduleDateControl()
-        //        {
-        //            ddlScheduleDate.Items.Clear();
-        //            ddlScheduleTime.Items.Clear();
-
-        //            if ( !pnlPlannedSchedule.Visible || ( cpCampus.Visible && cpCampus.SelectedValue.IsNullOrWhiteSpace() ) )
-        //            {
-        //                return;
-        //            }
-
-        //            OccurrenceSchedules = new List<OccurrenceSchedule>();
-        //            int? selectedCampusId = null;
-        //            if ( cpCampus.Visible )
-        //            {
-        //                selectedCampusId = cpCampus.SelectedCampusId.Value;
-        //            }
-        //            else
-        //            {
-        //                if ( CampusCache.All( false ).Count == 1 )
-        //                {
-        //                    // If there is just one active campus then use that one.
-        //                    selectedCampusId = CampusCache.All( false )[0].Id;
-        //                }
-        //                else
-        //                {
-        //                    // Rock should show an error before getting here, but just in case... If there are multiple campuses then we will need the campus to get the schedule.
-        //                    // If the user has edit permission display an error message so the configuration can be fixed
-        //                    if ( IsUserAuthorized( Authorization.EDIT ) )
-        //                    {
-        //                        nbError.Title = "Must Show Campus";
-        //                        nbError.Text = "In order to show campus schedules the campus has to be shown so it can be selected. Change the this block's 'Show Campus' attribute to 'Yes'. A user without edit permission to this block will just see \"Planned Visit Date\".";
-        //                        nbError.Visible = true;
-        //                        return;
-        //                    }
-
-        //                    // Since we can't show the schedules and this is not a user authorized to edit the block just show the date.
-        //                    pnlPlannedDate.Visible = true;
-        //                    pnlPlannedSchedule.Visible = false;
-
-        //                    return;
-        //                }
-        //            }
-
-        //            var campusScheduleAttributeKey = AttributeCache.Get( GetAttributeValue( AttributeKey.CampusScheduleAttribute ) ).Key;
-        //            var campusScheduleAttributeValue = CampusCache.Get( selectedCampusId.Value )?.GetAttributeValue( campusScheduleAttributeKey );
-
-        //            if ( campusScheduleAttributeValue.IsNullOrWhiteSpace() )
-        //            {
-        //                // If the user has edit permission then display an error message so the configuration can be fixed
-        //                if ( IsUserAuthorized( Authorization.EDIT ) )
-        //                {
-        //                    nbError.Title = "Missing Campus Schedule attribute.";
-        //                    nbError.Text = "This requires the creation of an Entity attribute for 'Campus' using a Field Type of 'Schedules'. The schedules can then be selected in the 'Edit Campus' block. A user without edit permission to this block will just see \"Planned Visit Date\".";
-        //                    nbError.Visible = true;
-
-        //                    return;
-        //                }
-
-        //                // Since we can't show the schedules and this is not a user authorized to edit the block just show the date.
-        //                pnlPlannedDate.Visible = true;
-        //                pnlPlannedSchedule.Visible = false;
-
-        //                return;
-        //            }
-
-        //            var schedules = campusScheduleAttributeValue.Split( ',' ).Select( g => new ScheduleService( _rockContext ).Get( g.AsGuid() ) );
-        //            int daysAhead = GetAttributeValue( AttributeKey.ScheduledDaysAhead ).AsIntegerOrNull() ?? 28;
-        //            HashSet<DateTime> scheduleDates = new HashSet<DateTime>();
-
-        //            foreach ( var schedule in schedules )
-        //            {
-        //                var occurrences = schedule.GetICalOccurrences( RockDateTime.Today, RockDateTime.Today.AddDays( daysAhead ), null ).ToList();
-        //                foreach ( var occurrence in occurrences )
-        //                {
-        //                    OccurrenceSchedules.Add( new OccurrenceSchedule { IcalOccurrenceDateTime = occurrence.Period.StartTime.Value, ScheduleGuid = schedule.Guid } );
-        //                    scheduleDates.Add( occurrence.Period.StartTime.Date );
-        //                }
-        //            }
-
-        //            var sortedScheduleDates = scheduleDates.ToList();
-        //            sortedScheduleDates.Sort();
-
-        //            if ( !ddlScheduleDate.Required )
-        //            {
-        //                ddlScheduleDate.Items.Add( new ListItem() );
-        //            }
-
-        //            foreach ( var sortedScheduleDate in sortedScheduleDates )
-        //            {
-        //                ddlScheduleDate.Items.Add( new ListItem( sortedScheduleDate.ToString( "dddd, MM/dd" ), sortedScheduleDate.ToString() ) );
-        //            }
-
-        //            if ( ddlScheduleDate.Required )
-        //            {
-        //                // A default date/time will already be chosen if it's required so don't wait for an event to load the occurence times.
-        //                SetScheduleTimeControl();
-        //            }
-        //        }
+        #endregion
 
         //        /// <summary>
         //        /// Populates ddlScheduleTime with a set of schedule times for the selected date. The Time is shown but the value is the schedule guid.
@@ -3053,10 +3089,14 @@ namespace Rock.Blocks.Crm
         //            SetScheduleTimeControl();
         //        }
 
+        #region Helper Classes
+
         protected class OccurrenceSchedule
         {
             public DateTime IcalOccurrenceDateTime { get; set; }
             public Guid ScheduleGuid { get; set; }
         }
+
+        #endregion
     }
 }

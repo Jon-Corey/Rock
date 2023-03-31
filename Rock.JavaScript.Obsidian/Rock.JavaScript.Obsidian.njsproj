@@ -687,7 +687,10 @@
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\AssessmentTypeDetail\assessmentTypeDetailOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\BadgeDetail\badgeBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\BadgeDetail\badgeDetailOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\FamilyPreRegistration\familyPreRegistrationGetScheduleDatesRequestBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\FamilyPreRegistration\familyPreRegistrationGetScheduleDatesResponseBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\FamilyPreRegistration\familyPreRegistrationInitializationBox.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\FamilyPreRegistration\familyPreRegistrationScheduleDateBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\PersonDetail\Badges\badgesConfigurationBox.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Crm\PhotoOptOut\photoOptOutBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\detailBlockBox.d.ts" />
