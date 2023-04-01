@@ -51,66 +51,62 @@
                         </div>
                     </Panel>
 
-                    <!-- <asp:Panel ID="pnlParents" runat="server" CssClass="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Adult Information</h3>
-                        </div>
-                        <div class="panel-body">
-
+                    <Panel id="pnlParents" title="Adult Information">
+                        <template #default>
                             <asp:HiddenField ID="hfFamilyGuid" runat="server" />
                             <asp:HiddenField ID="hfAdultGuid1" runat="server" />
                             <asp:HiddenField ID="hfAdultGuid2" runat="server" />
 
                             <h4 class="heading-individual">First Adult</h4>
-                            <div class="row">
-                                    <%-- Special input with rock-fullname class --%>
-                                    <Rock:RockTextBox ID="tbRockFullName" runat="server" CssClass="rock-fullname" ValidationGroup="vgRockFullName" Placeholder="Please enter name (Required)" autocomplete="new-password" />
-                                    <Rock:NotificationBox ID="nbRockFullName" runat="server" NotificationBoxType="Validation" />
 
-                                    <div class="<%= GetColumnStyle(3) %>">
-                                        <Rock:RockLiteral ID="lFirstName1" runat="server" Label="First Name" Visible="false" />
-                                        <Rock:DataTextBox ID="tbFirstName1" runat="server" SourceTypeName="Rock.Model.Person" PropertyName="NickName" Label="First Name" />
-                                    </div>
-                                    <div class="<%= GetColumnStyle(3) %>">
-                                        <Rock:RockLiteral ID="lLastName1" runat="server" Label="Last Name" Visible="false" />
-                                        <Rock:DataTextBox ID="tbLastName1" runat="server" SourceTypeName="Rock.Model.Person" PropertyName="LastName" Label="Last Name" />
-                                    </div>
-                                    <asp:Panel runat="server" ID="pnlGender1">
-                                        <Rock:RockDropDownList ID="ddlGender1" runat="server" Label="Gender" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlSuffix1">
-                                        <Rock:DefinedValuePicker ID="dvpSuffix1" runat="server" Label="Suffix" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlBirthDate1">
-                                        <Rock:BirthdayPicker ID="bpBirthDate1" runat="server" Label="Birth Date" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlMaritalStatus1">
-                                        <Rock:DefinedValuePicker ID="dvpMaritalStatus1" runat="server" Label="Marital Status" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlMobilePhone1">
-                                        <Rock:PhoneNumberBox ID="pnMobilePhone1" runat="server" Label="Mobile Phone" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlEmail1">
-                                        <Rock:EmailBox ID="tbEmail1" runat="server" Label="Email" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlCommunicationPreference1">
-                                        <Rock:RockRadioButtonList ID="rblCommunicationPreference1" runat="server" RepeatDirection="Horizontal" Label="Communication Preference">
-                                            <asp:ListItem Text="Email" Value="1" />
-                                            <asp:ListItem Text="SMS" Value="2" />
-                                        </Rock:RockRadioButtonList>
-                                    </asp:Panel>
-                                    <asp:Panel ID="pnlRace1" runat="server">
-                                        <Rock:RacePicker ID="rpRace1" runat="server" />
-                                    </asp:Panel>
-                                    <asp:Panel ID="pnlEthnicity1" runat="server">
-                                        <Rock:EthnicityPicker ID="epEthnicity1" runat="server" />
-                                    </asp:Panel>
+                            <div class="row">
+                                <Rock:RockTextBox ID="tbRockFullName" runat="server" CssClass="rock-fullname" ValidationGroup="vgRockFullName" Placeholder="Please enter name (Required)" autocomplete="new-password" />
+                                <Rock:NotificationBox ID="nbRockFullName" runat="server" NotificationBoxType="Validation" />
+
+                                <div class="<%= GetColumnStyle(3) %>">
+                                    <Rock:RockLiteral ID="lFirstName1" runat="server" Label="First Name" Visible="false" />
+                                    <Rock:DataTextBox ID="tbFirstName1" runat="server" SourceTypeName="Rock.Model.Person" PropertyName="NickName" Label="First Name" />
                                 </div>
+                                <div class="<%= GetColumnStyle(3) %>">
+                                    <Rock:RockLiteral ID="lLastName1" runat="server" Label="Last Name" Visible="false" />
+                                    <Rock:DataTextBox ID="tbLastName1" runat="server" SourceTypeName="Rock.Model.Person" PropertyName="LastName" Label="Last Name" />
+                                </div>
+                                <div id="pnlGender1">
+                                    <Rock:RockDropDownList ID="ddlGender1" runat="server" Label="Gender" />
+                                </div>
+                                <div id="pnlSuffix1">
+                                    <Rock:DefinedValuePicker ID="dvpSuffix1" runat="server" Label="Suffix" />
+                                </div>
+                                <div id="pnlBirthDate1">
+                                    <Rock:BirthdayPicker ID="bpBirthDate1" runat="server" Label="Birth Date" />
+                                </div>
+                                <div id="pnlMaritalStatus1">
+                                    <Rock:DefinedValuePicker ID="dvpMaritalStatus1" runat="server" Label="Marital Status" />
+                                </div>
+                                <div id="pnlMobilePhone1">
+                                    <Rock:PhoneNumberBox ID="pnMobilePhone1" runat="server" Label="Mobile Phone" />
+                                </div>
+                                <div id="pnlEmail1">
+                                    <Rock:EmailBox ID="tbEmail1" runat="server" Label="Email" />
+                                </div>
+                                <div id="pnlCommunicationPreference1">
+                                    <Rock:RockRadioButtonList ID="rblCommunicationPreference1" runat="server" RepeatDirection="Horizontal" Label="Communication Preference">
+                                        <asp:ListItem Text="Email" Value="1" />
+                                        <asp:ListItem Text="SMS" Value="2" />
+                                    </Rock:RockRadioButtonList>
+                                </div>
+                                <div id="pnlRace1">
+                                    <Rock:RacePicker ID="rpRace1" runat="server" />
+                                </div>
+                                <div id="pnlEthnicity1">
+                                    <Rock:EthnicityPicker ID="epEthnicity1" runat="server" />
+                                </div>
+                            </div>
 
                             <div class="row">
-                                <asp:Panel ID="pnlProfileImage1" runat="server" CssClass="col-sm-6">
+                                <div id="pnlProfileImage1" class="col-sm-6">
                                     <Rock:ImageEditor ID="imgProfile1" runat="server" Label="Profile Photo" RequiredErrorMessage="Profile photo is required for each adult." />
-                                </asp:Panel>
+                                </div>
                             </div>
 
                             <div class="row">
@@ -119,7 +115,7 @@
 
                             <div class="row mt-3">
                                 <div class="col-md-12">
-                                    <asp:Panel ID="pnlCreateAccount" runat="server">
+                                    <div id="pnlCreateAccount">
                                         <div class="well card-createaccount">
                                             <h4 class="heading-createaccount"><asp:Literal ID="rlCreateAccountTitle" runat="server"></asp:Literal></h4>
                                             <p><asp:Literal ID="rlCreateAccountDescription" runat="server"></asp:Literal></p>
@@ -138,13 +134,14 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </asp:Panel>
+                                    </div>
                                 </div>
                             </div>
 
                             <hr />
 
                             <h4 class="heading-individual">Second Adult</h4>
+
                             <div class="adult-2-fields">
                                 <asp:HiddenField ID="hfSuffixRequired" runat="server" />
                                 <asp:HiddenField ID="hfGenderRequired" runat="server" />
@@ -166,42 +163,42 @@
                                         <Rock:RockLiteral ID="lLastName2" runat="server" Label="Last Name" Visible="false" />
                                         <Rock:DataTextBox ID="tbLastName2" runat="server" SourceTypeName="Rock.Model.Person" PropertyName="LastName" Label="Last Name" />
                                     </div>
-                                    <asp:Panel runat="server" ID="pnlGender2">
+                                    <div id="pnlGender2">
                                         <Rock:RockDropDownList ID="ddlGender2" runat="server" Label="Gender" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlSuffix2">
+                                    </div>
+                                    <div id="pnlSuffix2">
                                         <Rock:DefinedValuePicker ID="dvpSuffix2" runat="server" Label="Suffix" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlBirthDate2">
+                                    </div>
+                                    <div id="pnlBirthDate2">
                                         <Rock:BirthdayPicker ID="bpBirthDate2" runat="server" Label="Birth Date" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlMaritalStatus2">
+                                    </div>
+                                    <div id="pnlMaritalStatus2">
                                         <Rock:DefinedValuePicker ID="dvpMaritalStatus2" runat="server" Label="Marital Status" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlMobilePhone2">
+                                    </div>
+                                    <div id="pnlMobilePhone2">
                                         <Rock:PhoneNumberBox ID="pnMobilePhone2" runat="server" Label="Mobile Phone" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlEmail2">
+                                    </div>
+                                    <div id="pnlEmail2">
                                         <Rock:EmailBox ID="tbEmail2" runat="server" Label="Email" />
-                                    </asp:Panel>
-                                    <asp:Panel runat="server" ID="pnlCommunicationPreference2">
+                                    </div>
+                                    <div id="pnlCommunicationPreference2">
                                         <Rock:RockRadioButtonList ID="rblCommunicationPreference2" runat="server" RepeatDirection="Horizontal" Label="Communication Preference">
                                             <asp:ListItem Text="Email" Value="1" />
                                             <asp:ListItem Text="SMS" Value="2" />
                                         </Rock:RockRadioButtonList>
-                                    </asp:Panel>
-                                    <asp:Panel ID="pnlRace2" runat="server">
+                                    </div>
+                                    <div id="pnlRace2">
                                         <Rock:RacePicker ID="rpRace2" runat="server" />
-                                    </asp:Panel>
-                                    <asp:Panel ID="pnlEthnicity2" runat="server">
+                                    </div>
+                                    <div id="pnlEthnicity2">
                                         <Rock:EthnicityPicker ID="epEthnicity2" runat="server" />
-                                    </asp:Panel>
+                                    </div>
                                 </div>
 
                                 <div class="row">
-                                    <asp:Panel ID="pnlProfileImage2" runat="server" CssClass="col-sm-6">
+                                    <div id="pnlProfileImage2" class="col-sm-6">
                                         <Rock:ImageEditor ID="imgProfile2" runat="server" Label="Profile Photo" RequiredErrorMessage="Profile photo is required for each adult." />
-                                    </asp:Panel>
+                                    </div>
                                 </div>
 
                                 <div class="row">
@@ -219,9 +216,8 @@
                                     <Rock:DynamicPlaceholder ID="phFamilyAttributes" runat="server" />
                                 </div>
                             </div>
-
-                        </div>
-                    </asp:Panel> -->
+                        </template>
+                    </Panel>
 
                     <!-- <asp:Panel ID="pnlChildren" runat="server" CssClass="panel panel-default">
                         <div class="panel-heading">
