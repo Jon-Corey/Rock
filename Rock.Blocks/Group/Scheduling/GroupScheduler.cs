@@ -624,8 +624,8 @@ namespace Rock.Blocks.Group.Scheduling
             return new GroupSchedulerResourceSettingsBag
             {
                 EnabledResourceListSourceTypes = enabledResourceListSourceTypes,
-                SourceType = enabledResourceListSourceTypes.FirstOrDefault(),
-                MatchType = default
+                ResourceListSourceType = enabledResourceListSourceTypes.FirstOrDefault(),
+                ResourceGroupMemberFilterType = default
             };
         }
 
@@ -635,7 +635,11 @@ namespace Rock.Blocks.Group.Scheduling
         /// <returns>The enabled resource list source types.</returns>
         private List<ResourceListSourceType> GetEnabledResourceListSourceTypes()
         {
-            var enabledTypes = new List<ResourceListSourceType> { ResourceListSourceType.Group };
+            var enabledTypes = new List<ResourceListSourceType> {
+                ResourceListSourceType.GroupMembers,
+                ResourceListSourceType.GroupMatchingPreference,
+                ResourceListSourceType.GroupMatchingAssignment
+            };
 
             if ( GetAttributeValue( AttributeKey.EnableAlternateGroupIndividualSelection ).AsBoolean() )
             {

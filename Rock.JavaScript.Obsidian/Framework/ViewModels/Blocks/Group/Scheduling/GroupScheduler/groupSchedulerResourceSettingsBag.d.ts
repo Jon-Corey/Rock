@@ -21,17 +21,16 @@
 // </copyright>
 //
 
-import { GroupMemberMatchType } from "@Obsidian/Enums/Blocks/Group/Scheduling/groupMemberMatchType";
 import { ResourceListSourceType } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
 
-/** The resource settings to indicate how individuals should be selected for assignment. */
+/** The resource settings to indicate how individuals should be selected for assignment within the group scheduler. */
 export type GroupSchedulerResourceSettingsBag = {
-    /** Gets or sets the enabled Rock.Enums.Blocks.Group.Scheduling.ResourceListSourceTypes, from which individuals may be scheduled. */
+    /** Gets or sets the enabled resource list source types, from which individuals may be scheduled. */
     enabledResourceListSourceTypes?: ResourceListSourceType[] | null;
 
-    /** Gets or sets the selected Rock.Enums.Blocks.Group.Scheduling.GroupMemberMatchType. */
-    matchType: GroupMemberMatchType;
+    /** Gets or sets the selected resource group member filter type. */
+    resourceGroupMemberFilterType: number;
 
-    /** Gets or sets the selected Rock.Enums.Blocks.Group.Scheduling.ResourceListSourceType. */
-    sourceType: ResourceListSourceType;
+    /** Gets or sets the selected resource list source type. */
+    resourceListSourceType: ResourceListSourceType;
 };

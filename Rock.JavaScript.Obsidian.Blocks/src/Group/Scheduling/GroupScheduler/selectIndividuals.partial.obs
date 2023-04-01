@@ -32,17 +32,18 @@
 
             <div v-if="sourceTypeIsGroup">
                 <!-- Desktop -->
-                <div class="d-none d-md-block">
+                <!-- <div class="d-none d-md-block">
                     <ButtonGroup v-model="matchType"
                                  :items="groupMemberMatchTypeItems"
                                  :btnSize="BtnSize.ExtraSmall" />
-                </div>
+                </div> -->
 
                 <!-- Mobile -->
-                <div class="d-md-none">
+                <!-- <div class="d-md-none">
                     <DropDownList v-model="matchType"
                                   :items="groupMemberMatchTypeItems" />
-                </div>
+                </div> -->
+                Source type is Group.
             </div>
 
         </div>
@@ -59,9 +60,8 @@
     import DropDownList from "@Obsidian/Controls/dropDownList";
     import Modal from "@Obsidian/Controls/modal";
     import GroupPicker from "@Obsidian/Controls/groupPicker";
-    import { GroupMemberMatchType, GroupMemberMatchTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/groupMemberMatchType";
-    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
     import { ResourceListSourceType, ResourceListSourceTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
     import { EntityType } from "@Obsidian/SystemGuids/entityType";
@@ -114,7 +114,11 @@
     });
 
     const sourceTypeIsGroup = computed((): boolean => {
-        return resourceListSourceType.value == ResourceListSourceType.Group;
+        return [
+            ResourceListSourceType.GroupMembers,
+            ResourceListSourceType.GroupMatchingPreference,
+            ResourceListSourceType.GroupMatchingAssignment
+        ].some((r: ResourceListSourceType) => resourceListSourceType.value === r);
     });
 
     const sourceTypeIsAlternateGroup = computed((): boolean => {
@@ -123,17 +127,6 @@
 
     const sourceTypeIsDataView = computed((): boolean => {
         return resourceListSourceType.value == ResourceListSourceType.DataView;
-    });
-
-    const groupMemberMatchTypeItems = computed((): { text: string, value: string }[] => {
-        return Object.keys(GroupMemberMatchTypeDescription).map((key: string) => ({
-            text: GroupMemberMatchTypeDescription[key],
-            value: key
-        }));
-    });
-
-    const groupMemberMatchType = computed((): GroupMemberMatchType => {
-        return toNumber(matchType.value) as GroupMemberMatchType;
     });
 
     // #endregion

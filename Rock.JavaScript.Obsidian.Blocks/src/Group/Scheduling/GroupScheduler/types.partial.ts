@@ -17,6 +17,7 @@
 // </copyright>
 //
 
+import { ResourceListSourceType } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
 import { SchedulerResourceGroupMemberFilterType } from "@Obsidian/Enums/Event/schedulerResourceGroupMemberFilterType";
 
 /**
@@ -177,7 +178,7 @@ export interface ISchedulerResourceParameters {
     GroupMemberFilterType?: SchedulerResourceGroupMemberFilterType | null,
 
     /** TBD */
-    // ResourceListSourceType?: GroupSchedulerResourceListSourceType | null,
+    ResourceListSourceType?: ResourceListSourceType | null,
 
     /** The resource data view identifier. */
     ResourceDataViewId?: number | null,

@@ -15,31 +15,46 @@
 // </copyright>
 //
 
+using System.ComponentModel;
+
 namespace Rock.Enums.Blocks.Group.Scheduling
 {
     /// <summary>
-    /// The resource list source type options available in the Group Scheduler block.
+    /// The resource list source type that should be used when presenting available resources for the group scheduler.
     /// </summary>
     public enum ResourceListSourceType
     {
         /// <summary>
-        /// The members of the selected group.
+        /// Show all members of the selected group.
         /// </summary>
-        Group = 0,
+        [Description( "All Group Members" )]
+        GroupMembers = 0,
 
         /// <summary>
-        /// The members of another group.
+        /// Show all members of the selected group that have a scheduling preference set for the selected week.
         /// </summary>
-        AlternateGroup = 1,
+        [Description( "Matching Week" )]
+        GroupMatchingPreference = 1,
 
         /// <summary>
-        /// The members of the parent group of the selected group.
+        /// Show all group members from another group.
         /// </summary>
-        ParentGroup = 2,
+        AlternateGroup = 2,
 
         /// <summary>
-        /// The people that exist in a selected data view.
+        /// Show all members from the Parent group of the select group (if the selected group has a parent group).
         /// </summary>
-        DataView = 3
+        ParentGroup = 3,
+
+        /// <summary>
+        /// Show all people that exist in a selected data view.
+        /// </summary>
+        DataView = 4,
+
+        /// <summary>
+        /// Show all members of the selected group that have a scheduling preference set for the selected week AND whose assignment (location/schedule) matches the filters OR they have no assignment.
+        /// </summary>
+        [Description( "Matching Assignment" )]
+        GroupMatchingAssignment = 5
     }
 }

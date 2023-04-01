@@ -17,36 +17,37 @@
 
 using System.Collections.Generic;
 using Rock.Enums.Blocks.Group.Scheduling;
+using Rock.Model;
 
 namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
 {
     /// <summary>
-    /// The resource settings to indicate how individuals should be selected for assignment.
+    /// The resource settings to indicate how individuals should be selected for assignment within the group scheduler.
     /// </summary>
     public class GroupSchedulerResourceSettingsBag
     {
         /// <summary>
-        /// Gets or sets the enabled <see cref="ResourceListSourceType"/>s, from which individuals may be scheduled.
+        /// Gets or sets the enabled resource list source types, from which individuals may be scheduled.
         /// </summary>
         /// <value>
-        /// The enabled <see cref="ResourceListSourceType"/>s, from which individuals may be scheduled.
+        /// The enabled resource list source types, from which individuals may be scheduled.
         /// </value>
         public List<ResourceListSourceType> EnabledResourceListSourceTypes { get; set; }
 
         /// <summary>
-        /// Gets or sets the selected <see cref="ResourceListSourceType"/>.
+        /// Gets or sets the selected resource list source type.
         /// </summary>
         /// <value>
-        /// The selected <see cref="ResourceListSourceType"/>.
+        /// The selected resource list source type.
         /// </value>
-        public ResourceListSourceType SourceType { get; set; }
+        public ResourceListSourceType ResourceListSourceType { get; set; }
 
         /// <summary>
-        /// Gets or sets the selected <see cref="GroupMemberMatchType"/>.
+        /// Gets or sets the selected resource group member filter type.
         /// </summary>
         /// <value>
-        /// The selected <see cref="GroupMemberMatchType"/>.
+        /// The selected resource group member filter type.
         /// </value>
-        public GroupMemberMatchType MatchType { get; set; }
+        public SchedulerResourceGroupMemberFilterType ResourceGroupMemberFilterType { get; set; }
     }
 }

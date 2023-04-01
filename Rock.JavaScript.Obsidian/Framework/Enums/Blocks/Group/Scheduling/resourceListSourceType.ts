@@ -21,31 +21,41 @@
 // </copyright>
 //
 
-/** The resource list source type options available in the Group Scheduler block. */
+/** The resource list source type that should be used when presenting available resources for the group scheduler. */
 export const ResourceListSourceType = {
-    /** The members of the selected group. */
-    Group: 0,
+    /** Show all members of the selected group. */
+    GroupMembers: 0,
 
-    /** The members of another group. */
-    AlternateGroup: 1,
+    /** Show all members of the selected group that have a scheduling preference set for the selected week. */
+    GroupMatchingPreference: 1,
 
-    /** The members of the parent group of the selected group. */
-    ParentGroup: 2,
+    /** Show all group members from another group. */
+    AlternateGroup: 2,
 
-    /** The people that exist in a selected data view. */
-    DataView: 3
+    /** Show all members from the Parent group of the select group (if the selected group has a parent group). */
+    ParentGroup: 3,
+
+    /** Show all people that exist in a selected data view. */
+    DataView: 4,
+
+    /** Show all members of the selected group that have a scheduling preference set for the selected week AND whose assignment (location/schedule) matches the filters OR they have no assignment. */
+    GroupMatchingAssignment: 5
 } as const;
 
-/** The resource list source type options available in the Group Scheduler block. */
+/** The resource list source type that should be used when presenting available resources for the group scheduler. */
 export const ResourceListSourceTypeDescription: Record<number, string> = {
-    0: "Group",
+    0: "All Group Members",
 
-    1: "Alternate Group",
+    1: "Matching Week",
 
-    2: "Parent Group",
+    2: "Alternate Group",
 
-    3: "Data View"
+    3: "Parent Group",
+
+    4: "Data View",
+
+    5: "Matching Assignment"
 };
 
-/** The resource list source type options available in the Group Scheduler block. */
+/** The resource list source type that should be used when presenting available resources for the group scheduler. */
 export type ResourceListSourceType = typeof ResourceListSourceType[keyof typeof ResourceListSourceType];
