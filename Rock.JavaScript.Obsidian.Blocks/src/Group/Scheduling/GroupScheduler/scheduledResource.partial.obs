@@ -70,6 +70,8 @@
     import { useVModelPassthrough } from "@Obsidian/Utility/component";
     import { useHttp } from "@Obsidian/Utility/http";
 
+    const http = useHttp();
+
     const props = defineProps({
         resource: {
             type: Object as PropType<ISchedulerResourceAttend>,
@@ -86,8 +88,6 @@
         (e: "resourceUpdated"): void,
         (e: "update:updateResourceWarningMessage"): void
     }>();
-
-    const http = useHttp();
 
     // #region Values
 

@@ -1,50 +1,64 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <Modal v-model="isVisible" title="Select Individuals" saveText="Assign" @save="onSave">
+    <Modal v-model="isVisible" title="Select Individuals" :saveText="saveText" @save="onSave">
 
-        <Alert v-if="!resourceListSourceTypeItems.length" :alertType="AlertType.Warning">
-            No resource lists available for selection.
-        </Alert>
+        <NotificationBox v-if="loadResourceSettingsErrorMessage" :alertType="AlertType.Warning">
+            {{ loadResourceSettingsErrorMessage }}
+        </NotificationBox>
 
         <div v-else>
 
-            <div v-if="resourceListSourceTypeItems.length > 1">
+            <template v-if="primarySourceTypeItems.length > 1">
                 <!-- Desktop -->
                 <div class="d-none d-md-block">
-                    <ButtonGroup v-model="sourceType"
-                                 :items="resourceListSourceTypeItems" />
+                    <ButtonGroup v-model="selectedPrimarySourceType"
+                                 :items="primarySourceTypeItems"
+                                 :disabled="isBusy"
+                                 @update:modelValue="onSettingsSelectionChanged" />
                 </div>
 
                 <!-- Mobile -->
                 <div class="d-md-none">
-                    <DropDownList v-model="sourceType"
-                                  :items="resourceListSourceTypeItems" />
+                    <DropDownList v-model="selectedPrimarySourceType"
+                                  :items="primarySourceTypeItems"
+                                  :showBlankItem="false"
+                                  :disabled="isBusy"
+                                  @update:modelValue="onSettingsSelectionChanged" />
+                </div>
+            </template>
+
+            <GroupPicker v-if="selectedSourceTypeIsAlternateGroup"
+                         v-model="selectedAlternateGroup"
+                         :disabled="isBusy"
+                         @update:modelValue="onSettingsSelectionChanged" />
+
+            <DataViewPicker v-if="selectedSourceTypeIsDataView"
+                            v-model="selectedDataView"
+                            :entityTypeGuid="EntityType.Person"
+                            :disabled="isBusy"
+                            @update:modelValue="onSettingsSelectionChanged" />
+
+            <h4 v-if="occurrence.groupName">{{ occurrence.groupName }}</h4>
+
+            <template v-if="selectedSourceTypeIsGroup">
+                <!-- Desktop -->
+                <div class="d-none d-md-block">
+                    <ButtonGroup v-model="selectedSecondarySourceType"
+                                 :items="secondarySourceTypeItems"
+                                 :btnSize="BtnSize.ExtraSmall"
+                                 :disabled="isBusy"
+                                 @update:modelValue="onSettingsSelectionChanged" />
                 </div>
 
-                <GroupPicker v-if="sourceTypeIsAlternateGroup"
-                             v-model="alternateGroup" />
-
-                <DataViewPicker v-if="sourceTypeIsDataView"
-                                v-model="dataView"
-                                :entityTypeGuid="EntityType.Person" />
-
-            </div>
-
-            <div v-if="sourceTypeIsGroup">
-                <!-- Desktop -->
-                <!-- <div class="d-none d-md-block">
-                    <ButtonGroup v-model="matchType"
-                                 :items="groupMemberMatchTypeItems"
-                                 :btnSize="BtnSize.ExtraSmall" />
-                </div> -->
-
                 <!-- Mobile -->
-                <!-- <div class="d-md-none">
-                    <DropDownList v-model="matchType"
-                                  :items="groupMemberMatchTypeItems" />
-                </div> -->
-                Source type is Group.
-            </div>
+                <div class="d-md-none">
+                    <DropDownList v-model="selectedSecondarySourceType"
+                                  :items="secondarySourceTypeItems"
+                                  :showBlankItem="false"
+                                  :disabled="isBusy"
+                                  @update:modelValue="onSettingsSelectionChanged" />
+                </div>
+            </template>
 
         </div>
 
@@ -52,23 +66,29 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, inject, PropType, Ref, ref } from "vue";
-    import { ProvideInjectKey } from "./types.partial";
-    import Alert from "@Obsidian/Controls/alert.obs";
+    import { computed, nextTick, PropType, ref, watch } from "vue";
+    import { ISchedulerResource, ISchedulerResourceParameters } from "./types.partial";
     import ButtonGroup from "@Obsidian/Controls/buttonGroup.obs";
     import DataViewPicker from "@Obsidian/Controls/dataViewPicker";
     import DropDownList from "@Obsidian/Controls/dropDownList";
-    import Modal from "@Obsidian/Controls/modal";
     import GroupPicker from "@Obsidian/Controls/groupPicker";
+    import Modal from "@Obsidian/Controls/modal";
+    import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import { ResourceListSourceType, ResourceListSourceTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
-    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
     import { EntityType } from "@Obsidian/SystemGuids/entityType";
-    import { useVModelPassthrough } from "@Obsidian/Utility/component";
-    import { toNumber } from "@Obsidian/Utility/numberUtils";
+    import { GroupSchedulerApplyResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerApplyResourceSettingsBag";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
     import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
+    import { useInvokeBlockAction } from "@Obsidian/Utility/block";
+    import { useVModelPassthrough } from "@Obsidian/Utility/component";
+    import { useHttp } from "@Obsidian/Utility/http";
+    import { toNumber } from "@Obsidian/Utility/numberUtils";
     import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+
+    const invokeBlockAction = useInvokeBlockAction();
+    const http = useHttp();
 
     const props = defineProps({
         isVisible: {
@@ -83,64 +103,314 @@
     });
 
     const emit = defineEmits<{
-        (e: "update:isVisible"): void,
-        (e: "assignIndividuals", value: any): void
+        (e: "update:isVisible"): void
     }>();
+
+    const primarySourceTypeGroupValue = "group";
+
+    const primarySourceTypes = [
+        // "Group" will be added as the first item (see below).
+        ResourceListSourceType.AlternateGroup,
+        ResourceListSourceType.ParentGroup,
+        ResourceListSourceType.DataView
+    ];
+
+    const secondarySourceTypes = [
+        ResourceListSourceType.GroupMembers,
+        ResourceListSourceType.GroupMatchingPreference,
+        ResourceListSourceType.GroupMatchingAssignment
+    ];
 
     // #region Values
 
     const isVisible = useVModelPassthrough(props, "isVisible", emit);
-    const resourceSettings = inject<Ref<GroupSchedulerResourceSettingsBag | null | undefined>>(ProvideInjectKey.resourceSettings);
 
-    const sourceType = ref("0");
-    const matchType = ref("0");
+    const isLoadingResourceSettings = ref(false);
+    const loadResourceSettingsErrorMessage = ref("");
 
-    const alternateGroup = ref<ListItemBag | null>(null);
-    const dataView = ref<ListItemBag | null>(null);
+    const isGettingResources = ref(false);
+    const getResourcesErrorMessage = ref("");
+
+    const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null>(null);
+
+    const selectedPrimarySourceType = ref<string>("");
+    const selectedSecondarySourceType = ref<string>("");
+    const selectedAlternateGroup = ref<ListItemBag | null>(null);
+    const selectedDataView = ref<ListItemBag | null>(null);
+
+    const availableResources = ref<ISchedulerResource[]>([]);
+    const selectedPersonIds = ref<number[]>([]);
 
     // #endregion
 
     // #region Computed Values
 
-    const resourceListSourceTypeItems = computed((): { text: string, value: string }[] => {
-        return resourceSettings?.value?.enabledResourceListSourceTypes?.map((value: ResourceListSourceType) => ({
-            text: ResourceListSourceTypeDescription[value],
-            value: value.toString()
-        })) ?? [];
+    const enabledSourceTypes = computed((): ResourceListSourceType[] => {
+        return resourceSettings.value?.enabledResourceListSourceTypes ?? [];
     });
 
-    const resourceListSourceType = computed((): ResourceListSourceType => {
-        return toNumber(sourceType.value) as ResourceListSourceType;
+    const secondarySourceTypeItems = computed((): { text: string, value: string }[] => {
+        return enabledSourceTypes.value
+            .filter((value: ResourceListSourceType) =>
+                secondarySourceTypes.some((secondary: ResourceListSourceType) => value === secondary)
+            )
+            .map((value: ResourceListSourceType) => ({
+                text: ResourceListSourceTypeDescription[value],
+                value: value.toString()
+            }));
     });
 
-    const sourceTypeIsGroup = computed((): boolean => {
-        return [
-            ResourceListSourceType.GroupMembers,
-            ResourceListSourceType.GroupMatchingPreference,
-            ResourceListSourceType.GroupMatchingAssignment
-        ].some((r: ResourceListSourceType) => resourceListSourceType.value === r);
+    const primarySourceTypeItems = computed((): { text: string, value: string }[] => {
+        const items = enabledSourceTypes.value
+            .filter((value: ResourceListSourceType) =>
+                primarySourceTypes.some((primary: ResourceListSourceType) => value === primary)
+            )
+            .map((value: ResourceListSourceType) => ({
+                text: ResourceListSourceTypeDescription[value],
+                value: value.toString()
+            }));
+
+        if (secondarySourceTypeItems.value.length) {
+            items.unshift({
+                text: "Group",
+                value: primarySourceTypeGroupValue
+            });
+        }
+
+        return items;
     });
 
-    const sourceTypeIsAlternateGroup = computed((): boolean => {
-        return resourceListSourceType.value === ResourceListSourceType.AlternateGroup;
+    const selectedSourceType = computed((): ResourceListSourceType | undefined => {
+        if (!selectedPrimarySourceType.value) {
+            return;
+        }
+
+        if (selectedPrimarySourceType.value === primarySourceTypeGroupValue) {
+            return toNumber(selectedSecondarySourceType.value) as ResourceListSourceType;
+        }
+
+        return toNumber(selectedPrimarySourceType.value) as ResourceListSourceType;
     });
 
-    const sourceTypeIsDataView = computed((): boolean => {
-        return resourceListSourceType.value == ResourceListSourceType.DataView;
+    const selectedSourceTypeIsGroup = computed((): boolean => {
+        return selectedPrimarySourceType.value === primarySourceTypeGroupValue;
     });
+
+    const selectedSourceTypeIsAlternateGroup = computed((): boolean => {
+        return selectedSourceType.value === ResourceListSourceType.AlternateGroup;
+    });
+
+    const selectedSourceTypeIsParentGroup = computed((): boolean => {
+        return selectedSourceType.value === ResourceListSourceType.ParentGroup;
+    });
+
+    const selectedSourceTypeIsDataView = computed((): boolean => {
+        return selectedSourceType.value === ResourceListSourceType.DataView;
+    });
+
+    const groupId = computed((): number => {
+        return props.occurrence?.groupId ?? 0;
+    });
+
+    const parentGroupId = computed((): number | null | undefined => {
+        return props.occurrence?.parentGroupId;
+    });
+
+    const locationIds = computed((): number[] => {
+        const ids: number[] = [];
+        if (props.occurrence) {
+            ids.push(props.occurrence.locationId);
+        }
+        return ids;
+    });
+
+    const scheduleIds = computed((): number[] => {
+        const ids: number[] = [];
+        if (props.occurrence) {
+            ids.push(props.occurrence.scheduleId);
+        }
+        return ids;
+    });
+
+    const sundayDate = computed((): string => {
+        return props.occurrence?.sundayDate ?? "";
+    });
+
+    const groupMemberFilterType = computed((): number => {
+        return resourceSettings.value?.resourceGroupMemberFilterType ?? 1;
+    });
+
+    const isBusy = computed((): boolean => {
+        return isLoadingResourceSettings.value || isGettingResources.value;
+    });
+
+    const saveText = computed((): string | undefined => {
+        if (isBusy.value || selectedSourceType.value === undefined) {
+            return;
+        }
+
+        return ResourceListSourceTypeDescription[selectedSourceType.value];
+    });
+
+    // #endregion
+
+    // #region Functions
+
+    /**
+     * Gets the resource settings for this group scheduler occurrence.
+     */
+    async function getResourceSettings(): Promise<void> {
+        if (isLoadingResourceSettings.value) {
+            return;
+        }
+
+        console.log("getResourceSettings()");
+
+        isLoadingResourceSettings.value = true;
+        loadResourceSettingsErrorMessage.value = "";
+
+        const result = await invokeBlockAction<GroupSchedulerResourceSettingsBag>("GetResourceSettings", { groupId: groupId.value });
+        if (!result.isSuccess) {
+            isLoadingResourceSettings.value = false;
+            loadResourceSettingsErrorMessage.value = result.errorMessage || "Unknown error while trying to load settings.";
+            return;
+        }
+
+        resourceSettings.value = result.data;
+
+        nextTick(() => {
+            isLoadingResourceSettings.value = false;
+        });
+    }
+
+    /**
+     * Gets the resources for this group scheduler occurrence, based on the currently-applied settings.
+     */
+    async function getResources(): Promise<void> {
+        if (isGettingResources.value) {
+            return;
+        }
+
+        console.log("getResources()");
+
+        const sourceType = selectedSourceType.value;
+        let parameters: Partial<ISchedulerResourceParameters> = {
+            AttendanceOccurrenceGroupId: groupId.value,
+            AttendanceOccurrenceScheduleIds: scheduleIds.value,
+            AttendanceOccurrenceLocationIds: locationIds.value,
+            AttendanceOccurrenceSundayDate: sundayDate.value,
+            GroupMemberFilterType: groupMemberFilterType.value,
+            ResourceListSourceType: sourceType
+        };
+
+        if (selectedSourceTypeIsGroup.value) {
+            parameters.ResourceGroupId = groupId.value;
+        }
+        else if (selectedSourceTypeIsAlternateGroup.value) {
+            if (!selectedAlternateGroup.value) {
+                return;
+            }
+        }
+        else if (selectedSourceTypeIsParentGroup.value) {
+            if (!parentGroupId.value) {
+                return;
+            }
+
+            parameters.ResourceGroupId = parentGroupId.value;
+        }
+        else if (selectedSourceTypeIsDataView.value) {
+            if (!selectedDataView.value) {
+                return;
+            }
+        }
+
+        isGettingResources.value = true;
+        getResourcesErrorMessage.value = "";
+
+        const result = await http.post<ISchedulerResource[]>("/api/Attendances/GetSchedulerResources", null, parameters);
+        isGettingResources.value = false;
+
+        if (!result.isSuccess) {
+            getResourcesErrorMessage.value = result.errorMessage ?? "Unknown error when trying to get available resources.";
+            return;
+        }
+
+        console.log(JSON.stringify(result.data));
+    }
 
     // #endregion
 
     // #region Event Handlers
 
     /**
+     * Handles resource settings selection changes.
+     */
+    async function onSettingsSelectionChanged(): Promise<void> {
+        if (isLoadingResourceSettings.value || selectedSourceType.value === undefined) {
+            return;
+        }
+
+        console.log("onSettingsSelectionChanged()");
+
+        isLoadingResourceSettings.value = true;
+        loadResourceSettingsErrorMessage.value = "";
+
+        const bag: GroupSchedulerApplyResourceSettingsBag = {
+            groupId: groupId.value,
+            selectedResourceListSourceType: selectedSourceType.value
+        };
+
+        const result = await invokeBlockAction<GroupSchedulerResourceSettingsBag>("ApplyResourceSettings", { bag });
+        if (!result.isSuccess) {
+            isLoadingResourceSettings.value = false;
+            loadResourceSettingsErrorMessage.value = result.errorMessage || "Unknown error while trying to apply settings.";
+            return;
+        }
+
+        resourceSettings.value = result.data;
+
+        nextTick(() => {
+            isLoadingResourceSettings.value = false;
+        });
+    }
+
+    /**
+     * Handles changes to the resource settings.
+     */
+    async function onResourceSettingsChanged(): Promise<void> {
+
+        console.log("onResourceSettingsChanged()");
+
+        const sourceType = resourceSettings.value?.resourceListSourceType;
+        if (sourceType !== undefined) {
+            if (secondarySourceTypes.some((secondary: ResourceListSourceType) => sourceType === secondary)) {
+                selectedPrimarySourceType.value = primarySourceTypeGroupValue;
+                selectedSecondarySourceType.value = sourceType.toString();
+            }
+            else {
+                selectedPrimarySourceType.value = sourceType.toString();
+            }
+        }
+
+        getResources();
+    }
+
+    /**
      * Handles the `save` event of the select individuals modal.
      */
     function onSave(): void {
-        emit("assignIndividuals", null);
-
         isVisible.value = false;
     }
 
     // #endregion
+
+    watch(isVisible, () => {
+        if (isVisible.value) {
+            getResourceSettings();
+        }
+    });
+
+    watch(resourceSettings, () => {
+        onResourceSettingsChanged();
+    });
 </script>

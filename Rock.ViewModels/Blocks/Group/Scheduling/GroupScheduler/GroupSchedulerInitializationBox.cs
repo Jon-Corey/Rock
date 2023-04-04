@@ -41,14 +41,6 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         public List<GroupSchedulerOccurrenceBag> ScheduleOccurrences { get; set; }
 
         /// <summary>
-        /// Gets or sets the resource settings to indicate how individuals should be selected for assignment.
-        /// </summary>
-        /// <value>
-        /// The resource settings to indicate how individuals should be selected for assignment.
-        /// </value>
-        public GroupSchedulerResourceSettingsBag ResourceSettings { get; set; }
-
-        /// <summary>
         /// Gets or sets the clone settings to indicate how schedules should be cloned.
         /// </summary>
         /// <value>

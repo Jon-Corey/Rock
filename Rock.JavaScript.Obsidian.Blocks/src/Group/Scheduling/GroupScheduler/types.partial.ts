@@ -152,7 +152,7 @@ export interface ISchedulerResourceAttend extends ISchedulerResource {
 }
 
 /**
- * Request parameters indicating the resources who should be presented for a group scheduler occurrence.
+ * Request parameters indicating the resources that should be retrieved for a group scheduler occurrence.
  * Representation of: https://github.com/SparkDevNetwork/Rock/blob/8dfb45edcbf4f166d483f6e96ed39806f3ca6a1b/Rock/Model/Event/Attendance/AttendanceService.cs#L3486
  */
 export interface ISchedulerResourceParameters {
@@ -174,10 +174,10 @@ export interface ISchedulerResourceParameters {
     /** If we just need the data for a specific person. */
     LimitToPersonId?: number | null,
 
-    /** The type of filter that should be applied to group members when sourcing scheduler resources. */
-    GroupMemberFilterType?: SchedulerResourceGroupMemberFilterType | null,
+    /** The group member filter type that should be used when retrieving available resources for the group scheduler. */
+    GroupMemberFilterType?: number | null,
 
-    /** TBD */
+    /** The resource list source type that should be used when retrieving available resources for the group scheduler. */
     ResourceListSourceType?: ResourceListSourceType | null,
 
     /** The resource data view identifier. */
@@ -228,10 +228,3 @@ export enum ResourceAction {
     UpdatePreference = 4,
     Remove = 5
 }
-
-/**
- * The provide/inject keys to use for the group scheduler component hierarchy.
- */
-export const ProvideInjectKey = {
-    resourceSettings: "GroupSchedulerResourceSettings"
-};

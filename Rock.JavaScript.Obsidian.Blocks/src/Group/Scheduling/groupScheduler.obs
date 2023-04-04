@@ -96,10 +96,9 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, nextTick, provide, ref } from "vue";
+    import { computed, nextTick, ref } from "vue";
     import OccurrenceDate from "./GroupScheduler/occurrenceDate.partial.obs";
     import SelectFilters from "./GroupScheduler/selectFilters.partial.obs";
-    import { ProvideInjectKey } from "./GroupScheduler/types.partial";
     import Alert from "@Obsidian/Controls/alert.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
@@ -109,7 +108,6 @@
     import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
     import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
-    import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
     import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const config = useConfigurationValues<GroupSchedulerInitializationBox>();
@@ -129,7 +127,6 @@
     const scheduleElementsByOccurrenceDate = ref<Record<number, any[]>>({});
 
     const filters = ref<GroupSchedulerFiltersBag | null | undefined>(config.filters);
-    const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null | undefined>(config.resourceSettings);
     const scheduleOccurrences = ref<GroupSchedulerOccurrenceBag[] | null | undefined>(config.scheduleOccurrences);
 
     const isSelectingFilters = ref(false);
@@ -377,7 +374,6 @@
 
     // #endregion
 
-    provide(ProvideInjectKey.resourceSettings, resourceSettings);
     provideSecurityGrant(securityGrant);
 
     onConfigurationValuesChanged(reloadBlock);

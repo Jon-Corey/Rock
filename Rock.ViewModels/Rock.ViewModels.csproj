@@ -67,6 +67,7 @@
     <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerOccurrenceBag.cs" />
     <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerResourceSettingsBag.cs" />
     <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerLocationsBag.cs" />
+    <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerApplyResourceSettingsBag.cs" />
     <Compile Include="Blocks\Group\Scheduling\GroupScheduler\GroupSchedulerSchedulesBag.cs" />
     <Compile Include="Blocks\Security\AccountEntry\AccountEntryAccountInfoBag.cs" />
     <Compile Include="Blocks\Security\AccountEntry\AccountEntryCompletedStepBag.cs" />

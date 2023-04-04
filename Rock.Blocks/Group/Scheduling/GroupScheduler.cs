@@ -133,7 +133,6 @@ namespace Rock.Blocks.Group.Scheduling
 
             box.Filters = GetFilters( rockContext );
             box.ScheduleOccurrences = GetScheduleOccurrences( rockContext );
-            box.ResourceSettings = GetResourceSettings();
             box.CloneSettings = GetCloneSettings();
             box.SecurityGrantToken = GetSecurityGrantToken();
         }
@@ -149,6 +148,7 @@ namespace Rock.Blocks.Group.Scheduling
 
             // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
 
+            // Dev-time defaults:
             filters.Groups = new List<ListItemBag>
             {
                 new ListItemBag { Value = "e82bd99e-7dc1-483c-a4f2-09017088c55e", Text = "Children's" },
@@ -612,54 +612,6 @@ namespace Rock.Blocks.Group.Scheduling
         }
 
         /// <summary>
-        /// Gets the resource settings, overriding any defaults with user preferences.
-        /// </summary>
-        /// <returns>The resource settings.</returns>
-        private GroupSchedulerResourceSettingsBag GetResourceSettings()
-        {
-            var enabledResourceListSourceTypes = GetEnabledResourceListSourceTypes();
-
-            // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
-
-            return new GroupSchedulerResourceSettingsBag
-            {
-                EnabledResourceListSourceTypes = enabledResourceListSourceTypes,
-                ResourceListSourceType = enabledResourceListSourceTypes.FirstOrDefault(),
-                ResourceGroupMemberFilterType = default
-            };
-        }
-
-        /// <summary>
-        /// Gets the enabled resource list source types from which individuals may be scheduled.
-        /// </summary>
-        /// <returns>The enabled resource list source types.</returns>
-        private List<ResourceListSourceType> GetEnabledResourceListSourceTypes()
-        {
-            var enabledTypes = new List<ResourceListSourceType> {
-                ResourceListSourceType.GroupMembers,
-                ResourceListSourceType.GroupMatchingPreference,
-                ResourceListSourceType.GroupMatchingAssignment
-            };
-
-            if ( GetAttributeValue( AttributeKey.EnableAlternateGroupIndividualSelection ).AsBoolean() )
-            {
-                enabledTypes.Add( ResourceListSourceType.AlternateGroup );
-            }
-
-            if ( GetAttributeValue( AttributeKey.EnableParentGroupIndividualSelection ).AsBoolean() )
-            {
-                enabledTypes.Add( ResourceListSourceType.ParentGroup );
-            }
-
-            if ( GetAttributeValue( AttributeKey.EnableDataViewIndividualSelection ).AsBoolean() )
-            {
-                enabledTypes.Add( ResourceListSourceType.DataView );
-            }
-
-            return enabledTypes;
-        }
-
-        /// <summary>
         /// Gets the clone settings, overriding any defaults with user preferences.
         /// </summary>
         /// <returns>The clone settings.</returns>
@@ -668,6 +620,104 @@ namespace Rock.Blocks.Group.Scheduling
             // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
 
             return new GroupSchedulerCloneSettingsBag();
+        }
+
+        /// <summary>
+        /// Gets the resource settings, overriding defaults with any previously-saved user preferences.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="groupId">The group ID for this group scheduler occurrence.</param>
+        /// <returns>The resource settings.</returns>
+        private GroupSchedulerResourceSettingsBag GetDefaultOrUserPreferenceResourceSettings( RockContext rockContext, int groupId )
+        {
+            var enabledResourceListSourceTypes = GetEnabledResourceListSourceTypes( rockContext, groupId );
+
+            var resourceSettings = new GroupSchedulerResourceSettingsBag
+            {
+                EnabledResourceListSourceTypes = enabledResourceListSourceTypes,
+                ResourceListSourceType = enabledResourceListSourceTypes.FirstOrDefault()
+            };
+
+            // TODO (JPH): Hook into user preferences to override defaults, once supported in Obsidian blocks.
+
+            SetGroupMemberFilterType( resourceSettings );
+
+            return resourceSettings;
+        }
+
+        /// <summary>
+        /// Gets the enabled resource list source types from which individuals may be scheduled.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="groupId">The group ID for this group scheduler occurrence.</param>
+        /// <returns>The enabled resource list source types.</returns>
+        private List<ResourceListSourceType> GetEnabledResourceListSourceTypes( RockContext rockContext, int groupId )
+        {
+            var group = new GroupService( rockContext ).GetNoTracking( groupId );
+            if ( group == null )
+            {
+                return new List<ResourceListSourceType>();
+            }
+
+            var enabledTypes = new List<ResourceListSourceType> {
+                ResourceListSourceType.GroupMembers,
+                ResourceListSourceType.GroupMatchingPreference,
+                ResourceListSourceType.GroupMatchingAssignment
+            };
+
+            if ( !group.SchedulingMustMeetRequirements )
+            {
+                // Only allow these alternate source types if enabled by block settings AND the group.
+                if ( GetAttributeValue( AttributeKey.EnableAlternateGroupIndividualSelection ).AsBoolean() )
+                {
+                    enabledTypes.Add( ResourceListSourceType.AlternateGroup );
+                }
+
+                if ( group.ParentGroupId.HasValue && GetAttributeValue( AttributeKey.EnableParentGroupIndividualSelection ).AsBoolean() )
+                {
+                    enabledTypes.Add( ResourceListSourceType.ParentGroup );
+                }
+
+                if ( GetAttributeValue( AttributeKey.EnableDataViewIndividualSelection ).AsBoolean() )
+                {
+                    enabledTypes.Add( ResourceListSourceType.DataView );
+                }
+            }
+
+            return enabledTypes;
+        }
+
+        /// <summary>
+        /// Sets the group member filter type based on the currently-selected resource list source type.
+        /// </summary>
+        /// <param name="settings">The resource settings.</param>
+        private void SetGroupMemberFilterType( GroupSchedulerResourceSettingsBag settings )
+        {
+            settings.ResourceGroupMemberFilterType = settings.ResourceListSourceType == ResourceListSourceType.GroupMatchingPreference
+                ? SchedulerResourceGroupMemberFilterType.ShowMatchingPreference
+                : SchedulerResourceGroupMemberFilterType.ShowAllGroupMembers;
+        }
+
+        /// <summary>
+        /// Validates and applies the resource settings to user preferences.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="settingsToApply">The settings to apply.</param>
+        /// <returns>The resource settings.</returns>
+        private GroupSchedulerResourceSettingsBag ValidateAndApplyResourceSettings( RockContext rockContext, GroupSchedulerApplyResourceSettingsBag settingsToApply )
+        {
+            var resourceSettings = GetDefaultOrUserPreferenceResourceSettings( rockContext, settingsToApply.GroupId );
+
+            if ( resourceSettings.EnabledResourceListSourceTypes.Contains( settingsToApply.SelectedResourceListSourceType ) )
+            {
+                resourceSettings.ResourceListSourceType = settingsToApply.SelectedResourceListSourceType;
+
+                // TODO (JPH): Save selected resource list source type to user preferences, once supported in Obsidian blocks.
+
+                SetGroupMemberFilterType( resourceSettings );
+            }
+
+            return resourceSettings;
         }
 
         /// <summary>
@@ -698,6 +748,8 @@ namespace Rock.Blocks.Group.Scheduling
 
                 RefineFilters( rockContext, bag );
 
+                // TODO (JPH): Save selected filters to user preferences, once supported in Obsidian blocks.
+
                 var results = new GroupSchedulerAppliedFiltersBag
                 {
                     filters = bag,
@@ -707,6 +759,38 @@ namespace Rock.Blocks.Group.Scheduling
                 rockContext.SqlLogging( false );
 
                 return ActionOk( results );
+            }
+        }
+
+        /// <summary>
+        /// Gets the resource settings, overriding defaults with any previously-saved user preferences.
+        /// </summary>
+        /// <param name="groupId">The group ID for this group scheduler occurrence.</param>
+        /// <returns>An object containing the available and applied resource settings.</returns>
+        [BlockAction]
+        public BlockActionResult GetResourceSettings( int groupId )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var resourceSettings = GetDefaultOrUserPreferenceResourceSettings( rockContext, groupId );
+
+                return ActionOk( resourceSettings );
+            }
+        }
+
+        /// <summary>
+        /// Validates and applies the resource settings to user preferences.
+        /// </summary>
+        /// <param name="bag">The resource settings to apply.</param>
+        /// <returns>An object containing the validated and applied + available resource settings.</returns>
+        [BlockAction]
+        public BlockActionResult ApplyResourceSettings( GroupSchedulerApplyResourceSettingsBag bag )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var resourceSettings = ValidateAndApplyResourceSettings( rockContext, bag );
+
+                return ActionOk( resourceSettings );
             }
         }
 

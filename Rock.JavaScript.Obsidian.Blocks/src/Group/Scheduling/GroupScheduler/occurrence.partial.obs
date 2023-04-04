@@ -56,14 +56,14 @@
     import { useHttp } from "@Obsidian/Utility/http";
     import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
 
+    const http = useHttp();
+
     const props = defineProps({
         occurrence: {
             type: Object as PropType<GroupSchedulerOccurrenceBag>,
             required: true
         }
     });
-
-    const http = useHttp();
 
     // #region Values
 
