@@ -15,6 +15,7 @@
 // </copyright>
 //
 
+using System;
 using Rock.Enums.Blocks.Group.Scheduling;
 
 namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
@@ -33,11 +34,27 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         public int GroupId { get; set; }
 
         /// <summary>
-        /// Gets or sets the selected resource list source type.
+        /// Gets or sets the resource list source type.
         /// </summary>
         /// <value>
-        /// The selected resource list source type.
+        /// The resource list source type.
         /// </value>
-        public ResourceListSourceType SelectedResourceListSourceType { get; set; }
+        public ResourceListSourceType ResourceListSourceType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the resource alternate group guid (if any).
+        /// </summary>
+        /// <value>
+        /// The resource alternate group guid (if any).
+        /// </value>
+        public Guid? ResourceAlternateGroupGuid { get; set; }
+
+        /// <summary>
+        /// Gets or sets the resource data view guid (if any).
+        /// </summary>
+        /// <value>
+        /// The resource data view guid (if any).
+        /// </value>
+        public Guid? ResourceDataViewGuid { get; set; }
     }
 }

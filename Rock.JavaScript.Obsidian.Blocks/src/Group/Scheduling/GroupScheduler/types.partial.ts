@@ -171,6 +171,9 @@ export interface ISchedulerResourceParameters {
     /** The resource group identifier. */
     ResourceGroupId?: number | null,
 
+    /** The resource group guid. */
+    ResourceGroupGuid?: string | null,
+
     /** If we just need the data for a specific person. */
     LimitToPersonId?: number | null,
 
@@ -182,6 +185,9 @@ export interface ISchedulerResourceParameters {
 
     /** The resource data view identifier. */
     ResourceDataViewId?: number | null,
+
+    /** The resource data view guid. */
+    ResourceDataViewGuid?: string | null,
 
     /** The resource additional person IDs. */
     ResourceAdditionalPersonIds?: number[] | null

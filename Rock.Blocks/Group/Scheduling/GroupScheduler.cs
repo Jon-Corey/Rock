@@ -383,6 +383,7 @@ namespace Rock.Blocks.Group.Scheduling
                 .SelectMany( gl => gl.Schedules, ( gl, s ) => new
                 {
                     gl.Group,
+                    gl.Group.ParentGroup,
                     gl.Location,
                     Schedule = s,
                     Config = gl.GroupLocationScheduleConfigs.FirstOrDefault( c => c.ScheduleId == s.Id )
@@ -411,6 +412,7 @@ namespace Rock.Blocks.Group.Scheduling
                 .Select( gls => new GroupLocationSchedule
                 {
                     Group = gls.Group,
+                    ParentGroup = gls.ParentGroup,
                     Location = gls.Location,
                     Schedule = gls.Schedule,
                     Config = gls.Config,
@@ -544,6 +546,7 @@ namespace Rock.Blocks.Group.Scheduling
                         GroupId = gls.Group.Id,
                         GroupName = gls.Group.Name,
                         ParentGroupId = gls.Group.ParentGroupId,
+                        ParentGroupName = gls.Group.ParentGroup?.Name,
                         LocationId = gls.Location.Id,
                         LocationName = gls.Location.ToString( true ),
                         ScheduleId = gls.Schedule.Id,
@@ -708,9 +711,9 @@ namespace Rock.Blocks.Group.Scheduling
         {
             var resourceSettings = GetDefaultOrUserPreferenceResourceSettings( rockContext, settingsToApply.GroupId );
 
-            if ( resourceSettings.EnabledResourceListSourceTypes.Contains( settingsToApply.SelectedResourceListSourceType ) )
+            if ( resourceSettings.EnabledResourceListSourceTypes.Contains( settingsToApply.ResourceListSourceType ) )
             {
-                resourceSettings.ResourceListSourceType = settingsToApply.SelectedResourceListSourceType;
+                resourceSettings.ResourceListSourceType = settingsToApply.ResourceListSourceType;
 
                 // TODO (JPH): Save selected resource list source type to user preferences, once supported in Obsidian blocks.
 
@@ -803,6 +806,8 @@ namespace Rock.Blocks.Group.Scheduling
             private readonly List<DateTime> _startDateTimes = new List<DateTime>();
 
             public Rock.Model.Group Group { get; set; }
+
+            public Rock.Model.Group ParentGroup { get; set; }
 
             public Location Location { get; set; }
 

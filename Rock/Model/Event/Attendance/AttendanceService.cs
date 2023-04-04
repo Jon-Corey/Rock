@@ -1276,13 +1276,24 @@ namespace Rock.Model
             groupMemberIdsThatLackGroupRequirements = null;
             GroupTypeCache resourceGroupGroupType = null;
 
-            if ( schedulerResourceParameters.ResourceGroupId.HasValue )
+            if ( schedulerResourceParameters.ResourceGroupId.HasValue || schedulerResourceParameters.ResourceGroupGuid.HasValue )
             {
                 groupMemberQry = groupMemberService.Queryable()
-                    .Where( a => a.GroupId == schedulerResourceParameters.ResourceGroupId.Value )
                     .Where( a => a.GroupMemberStatus == GroupMemberStatus.Active );
 
-                var resourceGroup = groupService.GetNoTracking( schedulerResourceParameters.ResourceGroupId.Value );
+                Group resourceGroup = null;
+
+                if ( schedulerResourceParameters.ResourceGroupId.HasValue )
+                {
+                    groupMemberQry = groupMemberQry.Where( a => a.GroupId == schedulerResourceParameters.ResourceGroupId.Value );
+                    resourceGroup = groupService.GetNoTracking( schedulerResourceParameters.ResourceGroupId.Value );
+                }
+                else
+                {
+                    groupMemberQry = groupMemberQry.Where( a => a.Group.Guid == schedulerResourceParameters.ResourceGroupGuid.Value );
+                    resourceGroup = groupService.GetNoTracking( schedulerResourceParameters.ResourceGroupGuid.Value );
+                }
+
                 if ( resourceGroup != null )
                 {
                     resourceGroupGroupType = GroupTypeCache.Get( resourceGroup.GroupTypeId );
@@ -1294,9 +1305,19 @@ namespace Rock.Model
                 }
             }
 
-            if ( schedulerResourceParameters.ResourceDataViewId.HasValue )
+            if ( schedulerResourceParameters.ResourceDataViewId.HasValue || schedulerResourceParameters.ResourceDataViewGuid.HasValue )
             {
-                var dataView = new DataViewService( rockContext ).Get( schedulerResourceParameters.ResourceDataViewId.Value );
+                DataView dataView = null;
+                var dataViewService = new DataViewService( rockContext );
+
+                if ( schedulerResourceParameters.ResourceDataViewId.HasValue )
+                {
+                    dataView = dataViewService.Get( schedulerResourceParameters.ResourceDataViewId.Value );
+                }
+                else
+                {
+                    dataView = dataViewService.Get( schedulerResourceParameters.ResourceDataViewGuid.Value );
+                }
 
                 if ( dataView != null )
                 {
@@ -3532,6 +3553,14 @@ namespace Rock.Model
         public int? ResourceGroupId { get; set; }
 
         /// <summary>
+        /// Gets or sets the resource group guid.
+        /// </summary>
+        /// <value>
+        /// The resource group guid.
+        /// </value>
+        public Guid? ResourceGroupGuid { get; set; }
+
+        /// <summary>
         /// If we just need the data for a specific person id
         /// </summary>
         /// <value>
@@ -3560,6 +3589,14 @@ namespace Rock.Model
         /// The resource data view identifier.
         /// </value>
         public int? ResourceDataViewId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the resource data view guid.
+        /// </summary>
+        /// <value>
+        /// The resource data view guid.
+        /// </value>
+        public Guid? ResourceDataViewGuid { get; set; }
 
         /// <summary>
         /// Gets or sets the resource additional person ids.

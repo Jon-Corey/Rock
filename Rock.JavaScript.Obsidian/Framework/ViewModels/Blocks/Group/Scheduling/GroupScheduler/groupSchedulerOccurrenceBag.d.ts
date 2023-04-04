@@ -59,6 +59,9 @@ export type GroupSchedulerOccurrenceBag = {
     /** Gets or sets the parent group ID (if any) for this occurrence. */
     parentGroupId?: number | null;
 
+    /** Gets or sets the parent group name (if any) for this occurrence. */
+    parentGroupName?: string | null;
+
     /** Gets or sets the schedule ID for this occurrence. */
     scheduleId: number;
 

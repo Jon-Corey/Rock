@@ -22,11 +22,18 @@
 //
 
 import { ResourceListSourceType } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
+import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
 /** The resource settings to indicate how individuals should be selected for assignment within the group scheduler. */
 export type GroupSchedulerResourceSettingsBag = {
     /** Gets or sets the enabled resource list source types, from which individuals may be scheduled. */
     enabledResourceListSourceTypes?: ResourceListSourceType[] | null;
+
+    /** Gets or sets the resource alternate group (if any). */
+    resourceAlternateGroup?: ListItemBag | null;
+
+    /** Gets or sets the resource data view (if any). */
+    resourceDataView?: ListItemBag | null;
 
     /** Gets or sets the selected resource group member filter type. */
     resourceGroupMemberFilterType: number;

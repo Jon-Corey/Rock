@@ -10,7 +10,7 @@
 
             <template v-if="primarySourceTypeItems.length > 1">
                 <!-- Desktop -->
-                <div class="d-none d-md-block">
+                <div class="d-none d-md-block form-group">
                     <ButtonGroup v-model="selectedPrimarySourceType"
                                  :items="primarySourceTypeItems"
                                  :disabled="isBusy"
@@ -18,7 +18,7 @@
                 </div>
 
                 <!-- Mobile -->
-                <div class="d-md-none">
+                <div class="d-md-none form-group">
                     <DropDownList v-model="selectedPrimarySourceType"
                                   :items="primarySourceTypeItems"
                                   :showBlankItem="false"
@@ -27,22 +27,25 @@
                 </div>
             </template>
 
-            <GroupPicker v-if="selectedSourceTypeIsAlternateGroup"
-                         v-model="selectedAlternateGroup"
-                         :disabled="isBusy"
-                         @update:modelValue="onSettingsSelectionChanged" />
+            <div v-if="selectedSourceTypeIsAlternateGroup" class="form-group">
+                <GroupPicker v-model="selectedAlternateGroup"
+                             :disabled="isBusy"
+                             @update:modelValue="onSettingsSelectionChanged" />
+            </div>
 
-            <DataViewPicker v-if="selectedSourceTypeIsDataView"
-                            v-model="selectedDataView"
-                            :entityTypeGuid="EntityType.Person"
-                            :disabled="isBusy"
-                            @update:modelValue="onSettingsSelectionChanged" />
+            <div v-if="selectedSourceTypeIsDataView" class="form-group">
+                <DataViewPicker
+                                v-model="selectedDataView"
+                                :entityTypeGuid="EntityType.Person"
+                                :disabled="isBusy"
+                                @update:modelValue="onSettingsSelectionChanged" />
+            </div>
 
-            <h4 v-if="occurrence.groupName">{{ occurrence.groupName }}</h4>
+            <h4 v-if="groupName">{{ groupName }}</h4>
 
             <template v-if="selectedSourceTypeIsGroup">
                 <!-- Desktop -->
-                <div class="d-none d-md-block">
+                <div class="d-none d-md-block form-group">
                     <ButtonGroup v-model="selectedSecondarySourceType"
                                  :items="secondarySourceTypeItems"
                                  :btnSize="BtnSize.ExtraSmall"
@@ -51,7 +54,7 @@
                 </div>
 
                 <!-- Mobile -->
-                <div class="d-md-none">
+                <div class="d-md-none form-group">
                     <DropDownList v-model="selectedSecondarySourceType"
                                   :items="secondarySourceTypeItems"
                                   :showBlankItem="false"
@@ -59,6 +62,18 @@
                                   @update:modelValue="onSettingsSelectionChanged" />
                 </div>
             </template>
+
+            <NotificationBox v-if="loadResourcesErrorMessage" :alertType="AlertType.Warning">
+                {{ loadResourcesErrorMessage }}
+            </NotificationBox>
+
+            <NotificationBox v-else-if="resourcesInfoMessage" :alertType="AlertType.Info">
+                {{ resourcesInfoMessage }}
+            </NotificationBox>
+
+            <div v-else>
+                Found {{ availableResources.length }} individuals.
+            </div>
 
         </div>
 
@@ -78,13 +93,13 @@
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
     import { EntityType } from "@Obsidian/SystemGuids/entityType";
-    import { GroupSchedulerApplyResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerApplyResourceSettingsBag";
-    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
-    import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
     import { useInvokeBlockAction } from "@Obsidian/Utility/block";
     import { useVModelPassthrough } from "@Obsidian/Utility/component";
     import { useHttp } from "@Obsidian/Utility/http";
     import { toNumber } from "@Obsidian/Utility/numberUtils";
+    import { GroupSchedulerApplyResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerApplyResourceSettingsBag";
+    import { GroupSchedulerOccurrenceBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerOccurrenceBag";
+    import { GroupSchedulerResourceSettingsBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerResourceSettingsBag";
     import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const invokeBlockAction = useInvokeBlockAction();
@@ -128,8 +143,10 @@
     const isLoadingResourceSettings = ref(false);
     const loadResourceSettingsErrorMessage = ref("");
 
-    const isGettingResources = ref(false);
-    const getResourcesErrorMessage = ref("");
+    const isLoadingResources = ref(false);
+    const loadResourcesErrorMessage = ref("");
+
+    const resourcesInfoMessage = ref("");
 
     const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null>(null);
 
@@ -208,6 +225,15 @@
         return selectedSourceType.value === ResourceListSourceType.DataView;
     });
 
+    const groupName = computed((): string | null | undefined => {
+        if (selectedSourceTypeIsGroup.value) {
+            return props.occurrence?.groupName;
+        }
+        else if (selectedSourceTypeIsParentGroup.value) {
+            return props.occurrence?.parentGroupName;
+        }
+    });
+
     const groupId = computed((): number => {
         return props.occurrence?.groupId ?? 0;
     });
@@ -217,19 +243,15 @@
     });
 
     const locationIds = computed((): number[] => {
-        const ids: number[] = [];
-        if (props.occurrence) {
-            ids.push(props.occurrence.locationId);
-        }
-        return ids;
+        return props.occurrence
+            ? [props.occurrence.locationId]
+            : [];
     });
 
     const scheduleIds = computed((): number[] => {
-        const ids: number[] = [];
-        if (props.occurrence) {
-            ids.push(props.occurrence.scheduleId);
-        }
-        return ids;
+        return props.occurrence
+            ? [props.occurrence.scheduleId]
+            : [];
     });
 
     const sundayDate = computed((): string => {
@@ -241,15 +263,17 @@
     });
 
     const isBusy = computed((): boolean => {
-        return isLoadingResourceSettings.value || isGettingResources.value;
+        return isLoadingResourceSettings.value || isLoadingResources.value;
     });
 
     const saveText = computed((): string | undefined => {
-        if (isBusy.value || selectedSourceType.value === undefined) {
+        if (isBusy.value
+            || selectedSourceType.value === undefined
+            || !selectedPersonIds.value?.length) {
             return;
         }
 
-        return ResourceListSourceTypeDescription[selectedSourceType.value];
+        return "Assign";
     });
 
     // #endregion
@@ -284,23 +308,50 @@
     }
 
     /**
-     * Gets the resources for this group scheduler occurrence, based on the currently-applied settings.
+     * Updates settings-related values based on the currently-applied resource settings.
+     */
+    function updateSettingsValues(): void {
+
+        console.log("updateSettingsValues()");
+
+        // TODO (JPH): Uncomment the following once user preferences are implemented.
+        // const sourceType = resourceSettings.value?.resourceListSourceType;
+        // if (sourceType !== undefined) {
+        //     if (secondarySourceTypes.some((secondary: ResourceListSourceType) => sourceType === secondary)) {
+        //         selectedPrimarySourceType.value = primarySourceTypeGroupValue;
+        //         selectedSecondarySourceType.value = sourceType.toString();
+        //     }
+        //     else {
+        //         selectedPrimarySourceType.value = sourceType.toString();
+        //     }
+        // }
+
+        // selectedAlternateGroup.value = resourceSettings.value?.resourceAlternateGroup ?? null;
+        // selectedDataView.value = resourceSettings.value?.resourceDataView ?? null;
+
+        nextTick(() => {
+            // TODO (JPH): Remove `nextTick` wrapper once user preferences are implemented.
+            getResources();
+        });
+    }
+
+    /**
+     * Gets the resources for this group scheduler occurrence, based on the currently-applied resource settings.
      */
     async function getResources(): Promise<void> {
-        if (isGettingResources.value) {
+        if (isLoadingResources.value) {
             return;
         }
 
         console.log("getResources()");
 
-        const sourceType = selectedSourceType.value;
         let parameters: Partial<ISchedulerResourceParameters> = {
             AttendanceOccurrenceGroupId: groupId.value,
             AttendanceOccurrenceScheduleIds: scheduleIds.value,
             AttendanceOccurrenceLocationIds: locationIds.value,
             AttendanceOccurrenceSundayDate: sundayDate.value,
             GroupMemberFilterType: groupMemberFilterType.value,
-            ResourceListSourceType: sourceType
+            ResourceListSourceType: selectedSourceType.value
         };
 
         if (selectedSourceTypeIsGroup.value) {
@@ -308,11 +359,17 @@
         }
         else if (selectedSourceTypeIsAlternateGroup.value) {
             if (!selectedAlternateGroup.value) {
+                availableResources.value = [];
+                resourcesInfoMessage.value = "Select an alternate group to continue.";
                 return;
             }
+
+            parameters.ResourceGroupGuid = selectedAlternateGroup.value.value;
         }
         else if (selectedSourceTypeIsParentGroup.value) {
             if (!parentGroupId.value) {
+                availableResources.value = [];
+                loadResourcesErrorMessage.value = "No parent group available.";
                 return;
             }
 
@@ -320,22 +377,32 @@
         }
         else if (selectedSourceTypeIsDataView.value) {
             if (!selectedDataView.value) {
+                availableResources.value = [];
+                resourcesInfoMessage.value = "Select a data view to continue.";
                 return;
             }
+
+            parameters.ResourceDataViewGuid = selectedDataView.value.value;
         }
 
-        isGettingResources.value = true;
-        getResourcesErrorMessage.value = "";
+        isLoadingResources.value = true;
+        loadResourcesErrorMessage.value = "";
 
         const result = await http.post<ISchedulerResource[]>("/api/Attendances/GetSchedulerResources", null, parameters);
-        isGettingResources.value = false;
+        isLoadingResources.value = false;
 
         if (!result.isSuccess) {
-            getResourcesErrorMessage.value = result.errorMessage ?? "Unknown error when trying to get available resources.";
+            loadResourcesErrorMessage.value = result.errorMessage ?? "Unknown error while trying to load available individuals.";
             return;
         }
 
-        console.log(JSON.stringify(result.data));
+        console.log(JSON.stringify(result));
+
+        availableResources.value = result.data ?? [];
+
+        resourcesInfoMessage.value = availableResources.value.length
+            ? ""
+            : "No individuals available for selection.";
     }
 
     // #endregion
@@ -357,7 +424,9 @@
 
         const bag: GroupSchedulerApplyResourceSettingsBag = {
             groupId: groupId.value,
-            selectedResourceListSourceType: selectedSourceType.value
+            resourceListSourceType: selectedSourceType.value,
+            resourceAlternateGroupGuid: selectedAlternateGroup.value?.value,
+            resourceDataViewGuid: selectedDataView.value?.value
         };
 
         const result = await invokeBlockAction<GroupSchedulerResourceSettingsBag>("ApplyResourceSettings", { bag });
@@ -375,27 +444,6 @@
     }
 
     /**
-     * Handles changes to the resource settings.
-     */
-    async function onResourceSettingsChanged(): Promise<void> {
-
-        console.log("onResourceSettingsChanged()");
-
-        const sourceType = resourceSettings.value?.resourceListSourceType;
-        if (sourceType !== undefined) {
-            if (secondarySourceTypes.some((secondary: ResourceListSourceType) => sourceType === secondary)) {
-                selectedPrimarySourceType.value = primarySourceTypeGroupValue;
-                selectedSecondarySourceType.value = sourceType.toString();
-            }
-            else {
-                selectedPrimarySourceType.value = sourceType.toString();
-            }
-        }
-
-        getResources();
-    }
-
-    /**
      * Handles the `save` event of the select individuals modal.
      */
     function onSave(): void {
@@ -408,9 +456,14 @@
         if (isVisible.value) {
             getResourceSettings();
         }
+        else {
+            isLoadingResourceSettings.value = false;
+            isLoadingResources.value = false;
+            selectedPersonIds.value = [];
+        }
     });
 
     watch(resourceSettings, () => {
-        onResourceSettingsChanged();
+        updateSettingsValues();
     });
 </script>

@@ -57,6 +57,14 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         public int? ParentGroupId { get; set; }
 
         /// <summary>
+        /// Gets or sets the parent group name (if any) for this occurrence.
+        /// </summary>
+        /// <value>
+        /// The parent group name (if any) for this occurrence.
+        /// </value>
+        public string ParentGroupName { get; set; }
+
+        /// <summary>
         /// Gets or sets the location ID for this occurrence.
         /// </summary>
         /// <value>

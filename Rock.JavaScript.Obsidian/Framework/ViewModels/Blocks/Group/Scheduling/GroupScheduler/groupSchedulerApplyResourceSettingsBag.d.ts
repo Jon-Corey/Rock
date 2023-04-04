@@ -22,12 +22,19 @@
 //
 
 import { ResourceListSourceType } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
+import { Guid } from "@Obsidian/Types";
 
 /** The resource settings to apply to user preferences for the group scheduler. */
 export type GroupSchedulerApplyResourceSettingsBag = {
     /** Gets or sets the group ID for this occurrence. */
     groupId: number;
 
-    /** Gets or sets the selected resource list source type. */
-    selectedResourceListSourceType: ResourceListSourceType;
+    /** Gets or sets the resource alternate group guid (if any). */
+    resourceAlternateGroupGuid?: Guid | null;
+
+    /** Gets or sets the resource data view guid (if any). */
+    resourceDataViewGuid?: Guid | null;
+
+    /** Gets or sets the resource list source type. */
+    resourceListSourceType: ResourceListSourceType;
 };

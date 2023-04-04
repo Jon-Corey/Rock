@@ -18,6 +18,7 @@
 using System.Collections.Generic;
 using Rock.Enums.Blocks.Group.Scheduling;
 using Rock.Model;
+using Rock.ViewModels.Utility;
 
 namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
 {
@@ -49,5 +50,21 @@ namespace Rock.ViewModels.Blocks.Group.Scheduling.GroupScheduler
         /// The selected resource group member filter type.
         /// </value>
         public SchedulerResourceGroupMemberFilterType ResourceGroupMemberFilterType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the resource alternate group (if any).
+        /// </summary>
+        /// <value>
+        /// The alternate resource alternate group (if any).
+        /// </value>
+        public ListItemBag ResourceAlternateGroup { get; set; }
+
+        /// <summary>
+        /// Gets or sets the resource data view (if any).
+        /// </summary>
+        /// <value>
+        /// The resource data view (if any).
+        /// </value>
+        public ListItemBag ResourceDataView { get; set; }
     }
 }
