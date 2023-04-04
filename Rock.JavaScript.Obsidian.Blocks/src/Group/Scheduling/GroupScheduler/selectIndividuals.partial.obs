@@ -71,9 +71,9 @@
                 {{ resourcesInfoMessage }}
             </NotificationBox>
 
-            <div v-else>
-                Found {{ availableResources.length }} individuals.
-            </div>
+            <AvailableResources v-else v-model="selectedPersonIds"
+                                :resources="availableResources"
+                                :disabled="isBusy" />
 
         </div>
 
@@ -82,6 +82,7 @@
 
 <script setup lang="ts">
     import { computed, nextTick, PropType, ref, watch } from "vue";
+    import AvailableResources from "./availableResources.partial.obs";
     import { ISchedulerResource, ISchedulerResourceParameters } from "./types.partial";
     import ButtonGroup from "@Obsidian/Controls/buttonGroup.obs";
     import DataViewPicker from "@Obsidian/Controls/dataViewPicker";
@@ -288,8 +289,6 @@
             return;
         }
 
-        console.log("getResourceSettings()");
-
         isLoadingResourceSettings.value = true;
         loadResourceSettingsErrorMessage.value = "";
 
@@ -311,9 +310,6 @@
      * Updates settings-related values based on the currently-applied resource settings.
      */
     function updateSettingsValues(): void {
-
-        console.log("updateSettingsValues()");
-
         // TODO (JPH): Uncomment the following once user preferences are implemented.
         // const sourceType = resourceSettings.value?.resourceListSourceType;
         // if (sourceType !== undefined) {
@@ -343,9 +339,12 @@
             return;
         }
 
-        console.log("getResources()");
+        const sourceType = selectedSourceType.value;
+        if (sourceType === undefined) {
+            return;
+        }
 
-        let parameters: Partial<ISchedulerResourceParameters> = {
+        const parameters: Partial<ISchedulerResourceParameters> = {
             AttendanceOccurrenceGroupId: groupId.value,
             AttendanceOccurrenceScheduleIds: scheduleIds.value,
             AttendanceOccurrenceLocationIds: locationIds.value,
@@ -396,8 +395,6 @@
             return;
         }
 
-        console.log(JSON.stringify(result));
-
         availableResources.value = result.data ?? [];
 
         resourcesInfoMessage.value = availableResources.value.length
@@ -416,8 +413,6 @@
         if (isLoadingResourceSettings.value || selectedSourceType.value === undefined) {
             return;
         }
-
-        console.log("onSettingsSelectionChanged()");
 
         isLoadingResourceSettings.value = true;
         loadResourceSettingsErrorMessage.value = "";

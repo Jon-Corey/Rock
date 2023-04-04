@@ -1,0 +1,70 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <p v-if="hasNotes">
+
+        <div v-if="preferenceList.length" class="resource-preferences text-muted">
+            <span class="resource-header">Preference</span>
+            <div v-for="preference in preferenceList" :key="`preference-${preference.ScheduleId}-${preference.LocationId}`" class="resource-preference">
+                <span class="resource-preference-schedule">
+                    {{ preference.ScheduleName }}
+                </span>
+                <template v-if="preference.LocationName">
+                    -
+                    <span class="resource-preference-location">
+                        {{ preference.LocationName }}
+                    </span>
+                </template>
+            </div>
+        </div>
+
+        <div v-if="scheduledList.length" class="resource-scheduled text-muted">
+            <span class="resource-header">Assignments</span>
+            <div v-for="scheduled in scheduledList" :key="`scheduled-${scheduled.ScheduleId}-${scheduled.LocationId}`" class="resource-scheduled">
+                <span class="resource-scheduled-schedule">
+                    {{ scheduled.ScheduleName }}
+                </span>
+                <template v-if="scheduled.LocationName">
+                    -
+                    <span class="resource-scheduled-location">
+                        {{ scheduled.LocationName }}
+                    </span>
+                </template>
+            </div>
+        </div>
+
+    </p>
+</template>
+
+<script setup lang="ts">
+    import { computed, PropType } from "vue";
+    import { ISchedulerResource, ISchedulerResourceAssignment } from "./types.partial";
+
+    const props = defineProps({
+        resource: {
+            type: Object as PropType<ISchedulerResource>,
+            required: true
+        }
+    });
+
+    // #region Computed Values
+
+    const preferenceList = computed((): ISchedulerResourceAssignment[] => {
+        return props.resource
+            ?.ResourcePreferenceList
+            ?.filter((a: ISchedulerResourceAssignment) => a.ScheduleName) ?? [];
+    });
+
+    const scheduledList = computed((): ISchedulerResourceAssignment[] => {
+        return props.resource
+            ?.ResourceScheduledList
+            ?.filter((a: ISchedulerResourceAssignment) => a.ScheduleName) ?? [];
+    });
+
+    const hasNotes = computed((): boolean => {
+        return !!(preferenceList.value?.length
+            || scheduledList.value?.length
+        );
+    });
+
+    // #endregion
+</script>

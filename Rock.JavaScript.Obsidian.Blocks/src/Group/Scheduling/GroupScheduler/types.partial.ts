@@ -18,7 +18,6 @@
 //
 
 import { ResourceListSourceType } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
-import { SchedulerResourceGroupMemberFilterType } from "@Obsidian/Enums/Event/schedulerResourceGroupMemberFilterType";
 
 /**
  * Information about a scheduler resource assignment for the group scheduler.
