@@ -75,17 +75,23 @@
 
             </div>
 
-            <NotificationBox v-if="loadResourcesErrorMessage" :alertType="AlertType.Warning">
-                {{ loadResourcesErrorMessage }}
-            </NotificationBox>
+            <Loading :isLoading="isAssigningResources">
+                <NotificationBox v-if="unsucessfulAssignmentPersonIds.length" :alertType="AlertType.Warning">
+                    Some assignments were unsuccessful. Please try again.
+                </NotificationBox>
 
-            <NotificationBox v-else-if="resourcesInfoMessage" :alertType="AlertType.Info">
-                {{ resourcesInfoMessage }}
-            </NotificationBox>
+                <NotificationBox v-if="loadResourcesErrorMessage" :alertType="AlertType.Warning">
+                    {{ loadResourcesErrorMessage }}
+                </NotificationBox>
 
-            <AvailableResources v-else v-model="selectedPersonIds"
-                                :resources="availableResources"
-                                :disabled="isBusy" />
+                <NotificationBox v-else-if="loadResourcesInfoMessage" :alertType="AlertType.Info">
+                    {{ loadResourcesInfoMessage }}
+                </NotificationBox>
+
+                <AvailableResources v-else v-model="selectedPersonIds"
+                                    :resources="availableResources"
+                                    :disabled="isBusy" />
+            </Loading>
 
         </template>
 
@@ -100,12 +106,14 @@
     import DataViewPicker from "@Obsidian/Controls/dataViewPicker";
     import DropDownList from "@Obsidian/Controls/dropDownList";
     import GroupPicker from "@Obsidian/Controls/groupPicker";
+    import Loading from "@Obsidian/Controls/loading";
     import Modal from "@Obsidian/Controls/modal";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import { ResourceListSourceType, ResourceListSourceTypeDescription } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
     import { EntityType } from "@Obsidian/SystemGuids/entityType";
+    import { HttpUrlParams } from "@Obsidian/Types/Utility/http";
     import { useInvokeBlockAction } from "@Obsidian/Utility/block";
     import { useVModelPassthrough } from "@Obsidian/Utility/component";
     import { useHttp } from "@Obsidian/Utility/http";
@@ -117,6 +125,7 @@
 
     const invokeBlockAction = useInvokeBlockAction();
     const http = useHttp();
+    const baseApiUrl = "/api/Attendances";
 
     const props = defineProps({
         isVisible: {
@@ -162,9 +171,11 @@
     const loadResourceSettingsErrorMessage = ref("");
 
     const isLoadingResources = ref(false);
+    const loadResourcesInfoMessage = ref("");
     const loadResourcesErrorMessage = ref("");
 
-    const resourcesInfoMessage = ref("");
+    const isAssigningResources = ref(false);
+    const unsucessfulAssignmentPersonIds = ref<number[]>([]);
 
     const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null>(null);
 
@@ -259,7 +270,7 @@
         const min = props.occurrence?.minimumCapacity ?? 0;
         const desired = props.occurrence?.desiredCapacity ?? 0;
         const max = props.occurrence?.maximumCapacity ?? 0;
-        const filled = props.spotsFilledCount + selectedPersonIds.value.length;
+        const filled = props.spotsFilledCount + selectedPersonIds.value?.length ?? 0;
 
         if (min > 0 && filled < min) {
             label = `Required for Minimum Capacity: ${min - filled}`;
@@ -311,7 +322,7 @@
     });
 
     const isBusy = computed((): boolean => {
-        return isLoadingResourceSettings.value || isLoadingResources.value;
+        return isLoadingResourceSettings.value || isLoadingResources.value || isAssigningResources.value;
     });
 
     const saveText = computed((): string | undefined => {
@@ -406,7 +417,7 @@
         else if (selectedSourceTypeIsAlternateGroup.value) {
             if (!selectedAlternateGroup.value) {
                 availableResources.value = [];
-                resourcesInfoMessage.value = "Select an alternate group to continue.";
+                loadResourcesInfoMessage.value = "Select an alternate group to continue.";
                 return;
             }
 
@@ -424,7 +435,7 @@
         else if (selectedSourceTypeIsDataView.value) {
             if (!selectedDataView.value) {
                 availableResources.value = [];
-                resourcesInfoMessage.value = "Select a data view to continue.";
+                loadResourcesInfoMessage.value = "Select a data view to continue.";
                 return;
             }
 
@@ -434,7 +445,7 @@
         isLoadingResources.value = true;
         loadResourcesErrorMessage.value = "";
 
-        const result = await http.post<ISchedulerResource[]>("/api/Attendances/GetSchedulerResources", null, parameters);
+        const result = await http.post<ISchedulerResource[]>(`${baseApiUrl}/GetSchedulerResources`, null, parameters);
         isLoadingResources.value = false;
 
         if (!result.isSuccess) {
@@ -444,7 +455,7 @@
 
         availableResources.value = result.data ?? [];
 
-        resourcesInfoMessage.value = availableResources.value.length
+        loadResourcesInfoMessage.value = availableResources.value.length
             ? ""
             : "No individuals available for selection.";
     }
@@ -488,8 +499,42 @@
     /**
      * Handles the `save` event of the select individuals modal.
      */
-    function onSave(): void {
-        isVisible.value = false;
+    async function onSave(): Promise<void> {
+        if (isAssigningResources.value || !selectedPersonIds.value?.length) {
+            return;
+        }
+
+        isAssigningResources.value = true;
+        unsucessfulAssignmentPersonIds.value = [];
+
+        const attendanceOccurrenceId = props.occurrence?.attendanceOccurrenceId ?? 0;
+
+        await Promise.all(selectedPersonIds.value.map(async (personId: number) => {
+            const params: HttpUrlParams = {
+                personId,
+                attendanceOccurrenceId
+            };
+
+            let result = await http.get(`${baseApiUrl}/CanSchedulePerson`, params);
+            if (!result.isSuccess) {
+                unsucessfulAssignmentPersonIds.value.push(personId);
+            }
+            else {
+                result = await http.doApiCall("PUT", `${baseApiUrl}/ScheduledPersonAddPending`, params);
+                if (!result.isSuccess) {
+                    unsucessfulAssignmentPersonIds.value.push(personId);
+                }
+            }
+        }));
+
+        if (unsucessfulAssignmentPersonIds.value.length) {
+            isAssigningResources.value = false;
+            selectedPersonIds.value = [...unsucessfulAssignmentPersonIds.value];
+            getResources();
+        }
+        else {
+            isVisible.value = false;
+        }
     }
 
     // #endregion
@@ -501,6 +546,8 @@
         else {
             isLoadingResourceSettings.value = false;
             isLoadingResources.value = false;
+            isAssigningResources.value = false;
+            availableResources.value = [];
             selectedPersonIds.value = [];
         }
     });

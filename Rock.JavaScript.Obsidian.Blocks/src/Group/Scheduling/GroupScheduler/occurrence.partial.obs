@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, PropType, ref } from "vue";
+    import { computed, PropType, ref, watch } from "vue";
     import ProgressBar from "./progressBar.partial.obs";
     import ScheduledResource from "./scheduledResource.partial.obs";
     import SelectIndividuals from "./selectIndividuals.partial.obs";
@@ -172,4 +172,10 @@
     // #endregion
 
     getCurrentResources();
+
+    watch(isSelectingIndividuals, () => {
+        if (!isSelectingIndividuals.value) {
+            getCurrentResources();
+        }
+    });
 </script>
