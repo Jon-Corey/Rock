@@ -212,6 +212,7 @@ import PopOver from "@Obsidian/Controls/popOver.obs";
 import RockLiteral from "@Obsidian/Controls/rockLiteral.obs";
 import RegistryEntry from "@Obsidian/Controls/registryEntry.obs";
 import GroupTypeGroupPicker from "@Obsidian/Controls/groupTypeGroupPicker.obs";
+import AccountPicker from "@Obsidian/Controls/accountPicker.obs";
 
 // #region Gallery Support
 
@@ -7550,7 +7551,7 @@ const groupTypeGroupPickerGallery = defineComponent({
             required: ref(false),
             glabel: ref("Group"),
             importCode: getSfcControlImportPath("groupTypeGroupPicker"),
-            exampleCode: `<GroupTypeGroupPicker label="Group Type and TypeGroup" groupLabel="Group" v-model="value"v-model:groupType="groupType" />`
+            exampleCode: `<GroupTypeGroupPicker label="Group Type and TypeGroup" groupLabel="Group" v-model="value" v-model:groupType="groupType" />`
         };
     },
     template: `
@@ -7572,6 +7573,40 @@ const groupTypeGroupPickerGallery = defineComponent({
                 <CheckBox label="Required" v-model="required" />
             </div>
         </div>
+        <p class="text-semibold font-italic">Not all settings are demonstrated in this gallery.</p>
+        <p>Additional props extend and are passed to the underlying <code>Rock Form Field</code>.</p>
+    </template>
+</GalleryAndResult>`
+});
+
+/** Demonstrates account picker */
+const accountPickerGallery = defineComponent({
+    name: "AccountPickerGallery",
+    components: {
+        GalleryAndResult,
+        CheckBox,
+        AccountPicker,
+        TextBox,
+        RockButton
+    },
+    setup() {
+        return {
+            value: ref(null),
+            importCode: getSfcControlImportPath("accountPicker"),
+            exampleCode: `<AccountPicker label="Financial Account" v-model="value" />`
+        };
+    },
+    template: `
+<GalleryAndResult
+    :value="{value, groupType}"
+    :importCode="importCode"
+    :exampleCode="exampleCode"
+    hasMultipleValues
+    enableReflection >
+
+    <AccountPicker label="Financial Account" v-model="value" />
+
+    <template #settings>
         <p class="text-semibold font-italic">Not all settings are demonstrated in this gallery.</p>
         <p>Additional props extend and are passed to the underlying <code>Rock Form Field</code>.</p>
     </template>
@@ -7718,6 +7753,7 @@ const controlGalleryComponents: Record<string, Component> = [
     rockLiteralGallery,
     registryEntryGallery,
     groupTypeGroupPickerGallery,
+    accountPickerGallery,
 ]
     // Sort list by component name
     .sort((a, b) => a.name.localeCompare(b.name))
