@@ -6,62 +6,74 @@
             {{ loadResourceSettingsErrorMessage }}
         </NotificationBox>
 
-        <div v-else>
+        <template v-else>
 
-            <template v-if="primarySourceTypeItems.length > 1">
-                <!-- Desktop -->
-                <div class="d-none d-md-block form-group">
-                    <ButtonGroup v-model="selectedPrimarySourceType"
-                                 :items="primarySourceTypeItems"
-                                 :disabled="isBusy"
-                                 @update:modelValue="onSettingsSelectionChanged" />
+            <div class="d-md-flex justify-content-md-between">
+
+                <div>
+                    <template v-if="primarySourceTypeItems.length > 1">
+                        <!-- Desktop -->
+                        <div class="d-none d-md-block form-group">
+                            <ButtonGroup v-model="selectedPrimarySourceType"
+                                         :items="primarySourceTypeItems"
+                                         :disabled="isBusy"
+                                         @update:modelValue="onSettingsSelectionChanged" />
+                        </div>
+
+                        <!-- Mobile -->
+                        <div class="d-md-none form-group">
+                            <DropDownList v-model="selectedPrimarySourceType"
+                                          :items="primarySourceTypeItems"
+                                          :showBlankItem="false"
+                                          :disabled="isBusy"
+                                          @update:modelValue="onSettingsSelectionChanged" />
+                        </div>
+                    </template>
+
+                    <div v-if="selectedSourceTypeIsAlternateGroup" class="form-group">
+                        <GroupPicker v-model="selectedAlternateGroup"
+                                     :disabled="isBusy"
+                                     @update:modelValue="onSettingsSelectionChanged" />
+                    </div>
+
+                    <div v-if="selectedSourceTypeIsDataView" class="form-group">
+                        <DataViewPicker
+                                        v-model="selectedDataView"
+                                        :entityTypeGuid="EntityType.Person"
+                                        :disabled="isBusy"
+                                        @update:modelValue="onSettingsSelectionChanged" />
+                    </div>
+
+                    <h4 v-if="groupName">{{ groupName }}</h4>
+
+                    <template v-if="selectedSourceTypeIsGroup">
+                        <!-- Desktop -->
+                        <div class="d-none d-md-block form-group">
+                            <ButtonGroup v-model="selectedSecondarySourceType"
+                                         :items="secondarySourceTypeItems"
+                                         :btnSize="BtnSize.ExtraSmall"
+                                         :disabled="isBusy"
+                                         @update:modelValue="onSettingsSelectionChanged" />
+                        </div>
+
+                        <!-- Mobile -->
+                        <div class="d-md-none form-group">
+                            <DropDownList v-model="selectedSecondarySourceType"
+                                          :items="secondarySourceTypeItems"
+                                          :showBlankItem="false"
+                                          :disabled="isBusy"
+                                          @update:modelValue="onSettingsSelectionChanged" />
+                        </div>
+                    </template>
                 </div>
 
-                <!-- Mobile -->
-                <div class="d-md-none form-group">
-                    <DropDownList v-model="selectedPrimarySourceType"
-                                  :items="primarySourceTypeItems"
-                                  :showBlankItem="false"
-                                  :disabled="isBusy"
-                                  @update:modelValue="onSettingsSelectionChanged" />
+                <div v-if="remainingResourceSpots" class="form-group">
+                    <span :class="remainingResourceSpots.cssClass">
+                        {{ remainingResourceSpots.label }}
+                    </span>
                 </div>
-            </template>
 
-            <div v-if="selectedSourceTypeIsAlternateGroup" class="form-group">
-                <GroupPicker v-model="selectedAlternateGroup"
-                             :disabled="isBusy"
-                             @update:modelValue="onSettingsSelectionChanged" />
             </div>
-
-            <div v-if="selectedSourceTypeIsDataView" class="form-group">
-                <DataViewPicker
-                                v-model="selectedDataView"
-                                :entityTypeGuid="EntityType.Person"
-                                :disabled="isBusy"
-                                @update:modelValue="onSettingsSelectionChanged" />
-            </div>
-
-            <h4 v-if="groupName">{{ groupName }}</h4>
-
-            <template v-if="selectedSourceTypeIsGroup">
-                <!-- Desktop -->
-                <div class="d-none d-md-block form-group">
-                    <ButtonGroup v-model="selectedSecondarySourceType"
-                                 :items="secondarySourceTypeItems"
-                                 :btnSize="BtnSize.ExtraSmall"
-                                 :disabled="isBusy"
-                                 @update:modelValue="onSettingsSelectionChanged" />
-                </div>
-
-                <!-- Mobile -->
-                <div class="d-md-none form-group">
-                    <DropDownList v-model="selectedSecondarySourceType"
-                                  :items="secondarySourceTypeItems"
-                                  :showBlankItem="false"
-                                  :disabled="isBusy"
-                                  @update:modelValue="onSettingsSelectionChanged" />
-                </div>
-            </template>
 
             <NotificationBox v-if="loadResourcesErrorMessage" :alertType="AlertType.Warning">
                 {{ loadResourcesErrorMessage }}
@@ -75,7 +87,7 @@
                                 :resources="availableResources"
                                 :disabled="isBusy" />
 
-        </div>
+        </template>
 
     </Modal>
 </template>
@@ -83,7 +95,7 @@
 <script setup lang="ts">
     import { computed, nextTick, PropType, ref, watch } from "vue";
     import AvailableResources from "./availableResources.partial.obs";
-    import { ISchedulerResource, ISchedulerResourceParameters } from "./types.partial";
+    import { IRemainingResourceSpots, ISchedulerResource, ISchedulerResourceParameters } from "./types.partial";
     import ButtonGroup from "@Obsidian/Controls/buttonGroup.obs";
     import DataViewPicker from "@Obsidian/Controls/dataViewPicker";
     import DropDownList from "@Obsidian/Controls/dropDownList";
@@ -114,6 +126,11 @@
 
         occurrence: {
             type: Object as PropType<GroupSchedulerOccurrenceBag>,
+            required: true
+        },
+
+        spotsFilledCount: {
+            type: Number as PropType<number>,
             required: true
         }
     });
@@ -232,6 +249,36 @@
         }
         else if (selectedSourceTypeIsParentGroup.value) {
             return props.occurrence?.parentGroupName;
+        }
+    });
+
+    const remainingResourceSpots = computed((): IRemainingResourceSpots | undefined => {
+        let label: string | undefined;
+        let state: "info" | "warning" | undefined;
+
+        const min = props.occurrence?.minimumCapacity ?? 0;
+        const desired = props.occurrence?.desiredCapacity ?? 0;
+        const max = props.occurrence?.maximumCapacity ?? 0;
+        const filled = props.spotsFilledCount + selectedPersonIds.value.length;
+
+        if (min > 0 && filled < min) {
+            label = `Required for Minimum Capacity: ${min - filled}`;
+            state = "warning";
+        }
+        else if (desired > 0 && filled < desired) {
+            label = `Required for Desired Capacity: ${desired - filled}`;
+            state = "info";
+        }
+        else if (max > 0) {
+            label = `Available for Max Capacity: ${filled > max ? 0 : max - filled}`;
+            state = "warning";
+        }
+
+        if (label && state) {
+            return {
+                label,
+                cssClass: `label label-${state} align-self-md-start`
+            };
         }
     });
 

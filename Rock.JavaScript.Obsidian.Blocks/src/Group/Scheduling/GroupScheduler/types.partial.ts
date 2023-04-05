@@ -47,6 +47,13 @@ export interface ISchedulerResourceAssignment {
 }
 
 /**
+ * Information about a group [type] role.
+ */
+export interface IGroupRole {
+    Name?: string | null;
+}
+
+/**
  * Information about a potential scheduler resource (Person) for the group scheduler.
  * Represenation of: https://github.com/SparkDevNetwork/Rock/blob/8dfb45edcbf4f166d483f6e96ed39806f3ca6a1b/Rock/Model/Event/Attendance/AttendanceService.cs#L3169
  */
@@ -117,7 +124,8 @@ export interface ISchedulerResource {
     /** Whether this Person is already scheduled for this group+schedule+date. */
     IsAlreadyScheduledForGroup?: boolean | null,
 
-    // GroupRole,
+    /** The group role, if the person is a member of the occurrence group. */
+    GroupRole: IGroupRole,
 
     /** The name of the group role. */
     GroupRoleName?: string | null,
@@ -210,6 +218,17 @@ export interface IScheduleProgress {
 
     /** The count of pending resources for this occurrence. */
     pendingCount: number
+}
+
+/**
+ * Information about the remaining resource spots to be filled for a group scheduler occurrence.
+ */
+export interface IRemainingResourceSpots {
+    /** A brief explanation of the remaning spots. */
+    label: string;
+
+    /** The CSS class(es) that should be applied to the remaining spots element. */
+    cssClass: string;
 }
 
 /**

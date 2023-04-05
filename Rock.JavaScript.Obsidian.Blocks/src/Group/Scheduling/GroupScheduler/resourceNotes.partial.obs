@@ -1,6 +1,6 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <p v-if="hasNotes">
+    <p v-if="hasNotes" class="new-group-scheduler">
 
         <div v-if="preferenceList.length" class="resource-preferences text-muted">
             <span class="resource-header">Preference</span>

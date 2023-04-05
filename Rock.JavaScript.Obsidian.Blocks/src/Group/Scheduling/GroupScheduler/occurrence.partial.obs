@@ -38,7 +38,8 @@
         </ul>
 
         <SelectIndividuals v-model:isVisible="isSelectingIndividuals"
-                           :occurrence="occurrence"></SelectIndividuals>
+                           :occurrence="occurrence"
+                           :spotsFilledCount="totalCount"></SelectIndividuals>
 
     </div>
 </template>
@@ -102,6 +103,10 @@
         return resources.value
             .filter((r: ISchedulerResourceAttend) => r.ConfirmationStatus === pending)
             .length;
+    });
+
+    const totalCount = computed((): number => {
+        return confirmedCount.value + pendingCount.value;
     });
 
     const scheduleProgress = computed((): IScheduleProgress => {
