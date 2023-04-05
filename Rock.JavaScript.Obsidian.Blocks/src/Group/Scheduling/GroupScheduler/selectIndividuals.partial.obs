@@ -75,9 +75,14 @@
 
             </div>
 
-            <Loading :isLoading="isAssigningResources">
-                <NotificationBox v-if="unsucessfulAssignmentPersonIds.length" :alertType="AlertType.Warning">
-                    Some assignments were unsuccessful. Please try again.
+            <Loading :isLoading="isBusy">
+                <NotificationBox v-if="unsuccessfulAssignmentPersonIds.length" :alertType="AlertType.Warning">
+                    Some assignments were unsuccessful.
+                    <ul v-if="unsuccessfulAssignmentMessages.length">
+                        <li v-for="(message, index) in unsuccessfulAssignmentMessages" :key="index">
+                            {{ message }}
+                        </li>
+                    </ul>
                 </NotificationBox>
 
                 <NotificationBox v-if="loadResourcesErrorMessage" :alertType="AlertType.Warning">
@@ -175,7 +180,8 @@
     const loadResourcesErrorMessage = ref("");
 
     const isAssigningResources = ref(false);
-    const unsucessfulAssignmentPersonIds = ref<number[]>([]);
+    const unsuccessfulAssignmentPersonIds = ref<number[]>([]);
+    const unsuccessfulAssignmentMessages = ref<string[]>([]);
 
     const resourceSettings = ref<GroupSchedulerResourceSettingsBag | null>(null);
 
@@ -383,8 +389,16 @@
         // selectedAlternateGroup.value = resourceSettings.value?.resourceAlternateGroup ?? null;
         // selectedDataView.value = resourceSettings.value?.resourceDataView ?? null;
 
+        // TODO (JPH): Remove the following once user preferences are supported.
+        const sourceType = resourceSettings.value?.resourceListSourceType;
+        if (sourceType != undefined) {
+            if (secondarySourceTypes.some((secondary: ResourceListSourceType) => sourceType === secondary)) {
+                selectedPrimarySourceType.value = primarySourceTypeGroupValue;
+            }
+        }
+
         nextTick(() => {
-            // TODO (JPH): Remove `nextTick` wrapper once user preferences are implemented.
+            // TODO (JPH): Remove `nextTick` wrapper (but leave the following line) once user preferences are implemented.
             getResources();
         });
     }
@@ -505,7 +519,8 @@
         }
 
         isAssigningResources.value = true;
-        unsucessfulAssignmentPersonIds.value = [];
+        unsuccessfulAssignmentPersonIds.value = [];
+        unsuccessfulAssignmentMessages.value = [];
 
         const attendanceOccurrenceId = props.occurrence?.attendanceOccurrenceId ?? 0;
 
@@ -517,19 +532,22 @@
 
             let result = await http.get(`${baseApiUrl}/CanSchedulePerson`, params);
             if (!result.isSuccess) {
-                unsucessfulAssignmentPersonIds.value.push(personId);
+                unsuccessfulAssignmentPersonIds.value.push(personId);
+                if (result.errorMessage) {
+                    unsuccessfulAssignmentMessages.value.push(result.errorMessage);
+                }
             }
             else {
                 result = await http.doApiCall("PUT", `${baseApiUrl}/ScheduledPersonAddPending`, params);
                 if (!result.isSuccess) {
-                    unsucessfulAssignmentPersonIds.value.push(personId);
+                    unsuccessfulAssignmentPersonIds.value.push(personId);
                 }
             }
         }));
 
-        if (unsucessfulAssignmentPersonIds.value.length) {
+        if (unsuccessfulAssignmentPersonIds.value.length) {
             isAssigningResources.value = false;
-            selectedPersonIds.value = [...unsucessfulAssignmentPersonIds.value];
+            selectedPersonIds.value = [...unsuccessfulAssignmentPersonIds.value];
             getResources();
         }
         else {
@@ -549,6 +567,8 @@
             isAssigningResources.value = false;
             availableResources.value = [];
             selectedPersonIds.value = [];
+            unsuccessfulAssignmentPersonIds.value = [];
+            unsuccessfulAssignmentMessages.value = [];
         }
     });
 

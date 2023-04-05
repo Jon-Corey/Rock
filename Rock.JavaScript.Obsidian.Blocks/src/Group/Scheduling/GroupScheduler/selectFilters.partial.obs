@@ -28,14 +28,14 @@
                                 @update:modelValue="onFiltersChanged()" />
 
         <!-- Don't set :disabled or :loading on this control; doing so creates a poor UX, based on how we're using it. -->
-        <DropDownList v-model="selectedLocationIds"
+        <DropDownList v-model="selectedLocationValues"
                       label="Locations"
                       :items="availableLocations"
                       :multiple="true"
                       @update:modelValue="onFiltersChanged()" />
 
         <!-- Don't set :disabled or :loading on this control; doing so creates a poor UX, based on how we're using it. -->
-        <DropDownList v-model="selectedScheduleIds"
+        <DropDownList v-model="selectedScheduleValues"
                       label="Schedules"
                       :items="availableSchedules"
                       :multiple="true"
@@ -111,7 +111,7 @@
         ];
     });
 
-    const selectedLocationIds = computed<string[]>({
+    const selectedLocationValues = computed<string[]>({
         get() {
             return selectedLocations.value
                 ?.filter((item: ListItemBag) => item?.value)
@@ -124,7 +124,7 @@
         }
     });
 
-    const selectedScheduleIds = computed<string[]>({
+    const selectedScheduleValues = computed<string[]>({
         get() {
             return selectedSchedules.value
                 ?.filter((item: ListItemBag) => item?.value)

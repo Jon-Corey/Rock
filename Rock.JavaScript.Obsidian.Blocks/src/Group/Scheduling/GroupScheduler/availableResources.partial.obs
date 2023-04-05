@@ -16,9 +16,6 @@
                                :disabled="disabled" />
                         <span class="label-text resource-name">
                             {{ resource.PersonName }}
-                            <span v-if="resource.GroupRole?.Name" class="resource-role text-muted">
-                                ({{ resource.GroupRole.Name }})
-                            </span>
                         </span>
                     </label>
                     <ResourceNotes :resource="resource" />
