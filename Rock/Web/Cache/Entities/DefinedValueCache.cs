@@ -88,13 +88,8 @@ namespace Rock.Web.Cache
         /// </value>
         [DataMember]
         public bool IsActive { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the category identifier. This property is ignored if <see cref="Rock.Model.DefinedType.CategorizedValuesEnabled">DefinedType.CategorizedValuesEnabled</see> is disabled.
-        /// </summary>
-        /// <value>
-        /// A <see cref="System.Int32"/> representing the identifier of the <see cref="Rock.Model.Category"/> that this Defined Value belongs to.
-        /// </value>
+        
+        /// <inheritdoc cref="Rock.Model.DefinedValue.CategoryId" />
         [DataMember]
         public int? CategoryId { get; private set; }
 
