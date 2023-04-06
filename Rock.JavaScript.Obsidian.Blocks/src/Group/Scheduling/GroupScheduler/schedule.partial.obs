@@ -66,22 +66,22 @@
             return {};
         }
 
-        const occurrences: Record<number, GroupSchedulerOccurrenceBag[]> = {};
+        const groupedOccurrences: Record<number, GroupSchedulerOccurrenceBag[]> = {};
         props.occurrences
             .filter((o: GroupSchedulerOccurrenceBag) => o.groupId)
             .forEach((o: GroupSchedulerOccurrenceBag) => {
                 const groupId = o.groupId || 0;
-                let groupOccurrences = occurrences[groupId];
+                let groupOccurrences = groupedOccurrences[groupId];
 
                 if (!groupOccurrences) {
                     groupOccurrences = [];
-                    occurrences[groupId] = groupOccurrences;
+                    groupedOccurrences[groupId] = groupOccurrences;
                 }
 
                 groupOccurrences.push(o);
             });
 
-        return occurrences;
+        return groupedOccurrences;
     });
 
     const anyGroups = computed((): boolean => {

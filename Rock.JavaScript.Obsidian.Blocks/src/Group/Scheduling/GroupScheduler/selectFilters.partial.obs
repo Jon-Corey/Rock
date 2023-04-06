@@ -3,7 +3,7 @@
     <Modal v-model="isVisible"
            title="Filters"
            saveText="Apply"
-           :disabled="isApplyingFilters"
+           :saveButtonDisabled="isApplyingFilters"
            @save="onSave">
 
         <div class="new-group-scheduler">

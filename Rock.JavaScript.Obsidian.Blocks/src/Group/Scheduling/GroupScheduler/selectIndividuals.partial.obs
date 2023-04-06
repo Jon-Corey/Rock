@@ -3,7 +3,7 @@
     <Modal v-model="isVisible"
            title="Select Individuals"
            saveText="Assign"
-           :disabled="disabled"
+           :saveButtonDisabled="disabled"
            @save="onSave">
 
         <div class="new-group-scheduler">

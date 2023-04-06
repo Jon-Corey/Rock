@@ -12,7 +12,7 @@
             <Schedule v-for="(occurrences, key, index) in occurrencesBySchedule" :key="key"
                       :occurrences="occurrences"
                       :showPrevNextButtons="showPrevNextButtons"
-                      :ref="(el) => addScheduleElement(el, index)"
+                      :ref="(comp) => addScheduleComponent(comp, index)"
                       @goPrevious="$emit('goPrevious', index)"
                       @goNext="$emit('goNext', index)"></Schedule>
 
@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, PropType, ref, watch } from "vue";
+    import { ComponentPublicInstance, computed, PropType, ref, watch } from "vue";
     import Schedule from "./schedule.partial.obs";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
@@ -40,16 +40,14 @@
     });
 
     const emit = defineEmits<{
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (e: "scheduleElementsCreated", scheduleElements: any[]): void,
+        (e: "scheduleComponentsCreated", scheduleComponents: (ComponentPublicInstance | null)[]): void,
         (e: "goPrevious", currentScheduleIndex: number): void,
         (e: "goNext", currentScheduleIndex: number): void
     }>();
 
     // #region Values
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scheduleElements = ref<any[]>([]);
+    const scheduleComponents = ref<(ComponentPublicInstance | null)[]>([]);
 
     // #endregion
 
@@ -73,22 +71,22 @@
             return {};
         }
 
-        const occurrences: Record<number, GroupSchedulerOccurrenceBag[]> = {};
+        const groupedOccurrences: Record<number, GroupSchedulerOccurrenceBag[]> = {};
         props.occurrences
             .filter((o: GroupSchedulerOccurrenceBag) => o.scheduleId)
             .forEach((o: GroupSchedulerOccurrenceBag) => {
                 const scheduleId = o.scheduleId || 0;
-                let scheduleOccurrences = occurrences[scheduleId];
+                let scheduleOccurrences = groupedOccurrences[scheduleId];
 
                 if (!scheduleOccurrences) {
                     scheduleOccurrences = [];
-                    occurrences[scheduleId] = scheduleOccurrences;
+                    groupedOccurrences[scheduleId] = scheduleOccurrences;
                 }
 
                 scheduleOccurrences.push(o);
             });
 
-        return occurrences;
+        return groupedOccurrences;
     });
 
     const scheduleCount = computed((): number => {
@@ -108,24 +106,27 @@
     // #region Functions
 
     /**
-     * Adds the element to the array of schedule elements.
+     * Adds the component to the array of schedule components.
      *
-     * @param element The schedule element to add.
-     * @param index The index of the element's corresponding schedule within the occurrences provided to this component.
+     * @param component The schedule component to add.
+     * @param index The index of the component's corresponding schedule within the occurrences provided to this occurrence date component.
      *  Per Vue docs: "It should be noted that the ref array does not guarantee the same order as the source array."
-     *  Hence the need to provide this element's index to know which schedule it represents.
+     *  Hence the need to provide this component's index to know which schedule it represents.
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function addScheduleElement(element: any, index: number): void {
-        scheduleElements.value[index] = element;
+    function addScheduleComponent(component: Element | ComponentPublicInstance | null, index: number): void {
+        if (!component) {
+            return;
+        }
 
-        // Once all elements have been added, report them back to the parent component.
-        if (scheduleElements.value.length === scheduleCount.value) {
-            emit("scheduleElementsCreated", scheduleElements.value);
+        scheduleComponents.value[index] = component as ComponentPublicInstance;
+
+        // Once all schedule components have been added, report them back to the parent component.
+        if (scheduleComponents.value.length === scheduleCount.value) {
+            emit("scheduleComponentsCreated", scheduleComponents.value);
         }
     }
 
-    watch(props.occurrences, () => {
-        scheduleElements.value = [];
+    watch(() => props.occurrences, () => {
+        scheduleComponents.value = [];
     });
 </script>
