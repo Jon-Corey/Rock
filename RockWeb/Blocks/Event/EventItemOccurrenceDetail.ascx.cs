@@ -712,9 +712,11 @@ namespace RockWeb.Blocks.Event
                 }
             }
 
-            var qryParams = new Dictionary<string, string>();
-            qryParams.Add( "EventCalendarId", PageParameter( "EventCalendarId" ) );
-            qryParams.Add( "EventItemId", PageParameter( "EventItemId" ) );
+            var qryParams = new Dictionary<string, string>
+            {
+                { "EventCalendarId", PageParameter("EventCalendarId") },
+                { "EventItemId", PageParameter("EventItemId") }
+            };
 
             NavigateToParentPage( qryParams );
         }
