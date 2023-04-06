@@ -13,12 +13,12 @@
                                :id="resource.PersonId.toString()"
                                :name="resource.PersonId.toString()"
                                :value="resource.PersonId"
-                               :disabled="disabled" />
+                               :disabled="disabled || getIsDisabled(resource)" />
                         <span class="label-text resource-name">
                             {{ resource.PersonName }}
                         </span>
                     </label>
-                    <ResourceNotes :resource="resource" />
+                    <ResourceNotes :resource="resource" :disabled="getIsDisabled(resource)" />
                 </div>
             </div>
         </div>
@@ -56,6 +56,19 @@
     // #region Values
 
     const selectedResources = useVModelPassthrough(props, "modelValue", emit);
+
+    // #endregion
+
+    // #region Functions
+
+    /**
+     * Gets whether this resource should be disabled for scheduling.
+     *
+     * @param resource The resource to check.
+     */
+    function getIsDisabled(resource: ISchedulerResource): boolean {
+        return resource.HasBlackoutConflict || resource.HasGroupRequirementsConflict;
+    }
 
     // #endregion
 </script>

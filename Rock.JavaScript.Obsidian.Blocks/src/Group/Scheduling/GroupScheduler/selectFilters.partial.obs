@@ -1,45 +1,51 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <Modal v-model="isVisible" title="Filters" saveText="Apply" @save="onSave" :disabled="isApplyingFilters">
+    <Modal v-model="isVisible"
+           title="Filters"
+           saveText="Apply"
+           :disabled="isApplyingFilters"
+           @save="onSave">
 
-        <Alert :alertType="AlertType.Info">
-            Select the filter options below to limit what is shown on the group scheduler.
-        </Alert>
+        <div class="new-group-scheduler">
+            <Alert :alertType="AlertType.Info">
+                Select the filter options below to limit what is shown on the group scheduler.
+            </Alert>
 
-        <Alert v-if="warningMessage" :alertType="AlertType.Warning">
-            {{ warningMessage }}
-        </Alert>
+            <Alert v-if="warningMessage" :alertType="AlertType.Warning">
+                {{ warningMessage }}
+            </Alert>
 
-        <GroupPicker v-model="selectedGroups"
-                     label="Groups"
-                     :multiple="true"
-                     :limitToSchedulingEnabled="true"
-                     :autoExpand="true"
-                     :disabled="isApplyingFilters"
-                     rules="required"
-                     @update:modelValue="onFiltersChanged()" />
+            <GroupPicker v-model="selectedGroups"
+                         label="Groups"
+                         :multiple="true"
+                         :limitToSchedulingEnabled="true"
+                         :autoExpand="true"
+                         :disabled="isApplyingFilters"
+                         rules="required"
+                         @update:modelValue="onFiltersChanged()" />
 
-        <SlidingDateRangePicker v-model="selectedDateRange"
-                                label="Dates"
-                                previewLocation="Top"
-                                :enabledSlidingDateRangeUnits="enabledDateRangeTypes"
-                                :disallowPastDateSelection="true"
-                                :disabled="isApplyingFilters"
-                                @update:modelValue="onFiltersChanged()" />
+            <SlidingDateRangePicker v-model="selectedDateRange"
+                                    label="Dates"
+                                    previewLocation="Top"
+                                    :enabledSlidingDateRangeUnits="enabledDateRangeTypes"
+                                    :disallowPastDateSelection="true"
+                                    :disabled="isApplyingFilters"
+                                    @update:modelValue="onFiltersChanged()" />
 
-        <!-- Don't set :disabled or :loading on this control; doing so creates a poor UX, based on how we're using it. -->
-        <DropDownList v-model="selectedLocationValues"
-                      label="Locations"
-                      :items="availableLocations"
-                      :multiple="true"
-                      @update:modelValue="onFiltersChanged()" />
+            <!-- Don't set :disabled or :loading on this control; doing so creates a poor UX, based on how we're using it. -->
+            <DropDownList v-model="selectedLocationValues"
+                          label="Locations"
+                          :items="availableLocations"
+                          :multiple="true"
+                          @update:modelValue="onFiltersChanged()" />
 
-        <!-- Don't set :disabled or :loading on this control; doing so creates a poor UX, based on how we're using it. -->
-        <DropDownList v-model="selectedScheduleValues"
-                      label="Schedules"
-                      :items="availableSchedules"
-                      :multiple="true"
-                      @update:modelValue="onFiltersChanged()" />
+            <!-- Don't set :disabled or :loading on this control; doing so creates a poor UX, based on how we're using it. -->
+            <DropDownList v-model="selectedScheduleValues"
+                          label="Schedules"
+                          :items="availableSchedules"
+                          :multiple="true"
+                          @update:modelValue="onFiltersChanged()" />
+        </div>
 
     </Modal>
 </template>

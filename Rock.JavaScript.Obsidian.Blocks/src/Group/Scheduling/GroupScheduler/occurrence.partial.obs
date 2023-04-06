@@ -39,7 +39,8 @@
 
         <SelectIndividuals v-model:isVisible="isSelectingIndividuals"
                            :occurrence="occurrence"
-                           :spotsFilledCount="totalCount"></SelectIndividuals>
+                           :spotsFilledCount="totalCount"
+                           @partialAssignmentSuccess="getCurrentResources"></SelectIndividuals>
 
     </div>
 </template>

@@ -249,14 +249,26 @@
     }
   }
 
-  .resource-header {
-    display: block;
-    margin-top: 6px;
-    font-weight: @font-weight-semibold;
-  }
+  .resource-notes {
+    font-size: @font-size-small;
+    color: @text-muted;
 
-  .resource-preference,
-  .resource-scheduled {
-    margin-top: 4px;
+    .resource-notes-section {
+      /*margin-top: 6px;*/
+    }
+
+    .resource-notes-header {
+      font-weight: @font-weight-semibold;
+    }
+
+    .resource-preference,
+    .resource-scheduled,
+    .resource-schedule-conflict {
+      /*margin-top: 4px;*/
+    }
+
+    &.resource-disabled {
+      opacity: 0.75;
+    }
   }
 }

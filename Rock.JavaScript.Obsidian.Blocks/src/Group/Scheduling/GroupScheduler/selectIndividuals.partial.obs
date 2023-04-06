@@ -1,104 +1,115 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <Modal v-model="isVisible" title="Select Individuals" :saveText="saveText" @save="onSave">
+    <Modal v-model="isVisible"
+           title="Select Individuals"
+           saveText="Assign"
+           :disabled="disabled"
+           @save="onSave">
 
-        <NotificationBox v-if="loadResourceSettingsErrorMessage" :alertType="AlertType.Warning">
-            {{ loadResourceSettingsErrorMessage }}
-        </NotificationBox>
+        <div class="new-group-scheduler">
+            <NotificationBox v-if="loadResourceSettingsErrorMessage" :alertType="AlertType.Warning">
+                {{ loadResourceSettingsErrorMessage }}
+            </NotificationBox>
 
-        <template v-else>
+            <template v-else>
 
-            <div class="d-md-flex justify-content-md-between">
+                <div class="d-md-flex justify-content-md-between">
 
-                <div>
-                    <template v-if="primarySourceTypeItems.length > 1">
-                        <!-- Desktop -->
-                        <div class="d-none d-md-block form-group">
-                            <ButtonGroup v-model="selectedPrimarySourceType"
-                                         :items="primarySourceTypeItems"
+                    <div>
+                        <template v-if="primarySourceTypeItems.length > 1">
+                            <!-- Desktop -->
+                            <div class="d-none d-md-block form-group">
+                                <ButtonGroup v-model="selectedPrimarySourceType"
+                                             :items="primarySourceTypeItems"
+                                             :disabled="isBusy"
+                                             @update:modelValue="onSettingsSelectionChanged" />
+                            </div>
+
+                            <!-- Mobile -->
+                            <div class="d-md-none form-group">
+                                <DropDownList v-model="selectedPrimarySourceType"
+                                              :items="primarySourceTypeItems"
+                                              :showBlankItem="false"
+                                              :disabled="isBusy"
+                                              @update:modelValue="onSettingsSelectionChanged" />
+                            </div>
+                        </template>
+
+                        <div v-if="selectedSourceTypeIsAlternateGroup" class="form-group">
+                            <GroupPicker v-model="selectedAlternateGroup"
                                          :disabled="isBusy"
                                          @update:modelValue="onSettingsSelectionChanged" />
                         </div>
 
-                        <!-- Mobile -->
-                        <div class="d-md-none form-group">
-                            <DropDownList v-model="selectedPrimarySourceType"
-                                          :items="primarySourceTypeItems"
-                                          :showBlankItem="false"
-                                          :disabled="isBusy"
-                                          @update:modelValue="onSettingsSelectionChanged" />
+                        <div v-if="selectedSourceTypeIsDataView" class="form-group">
+                            <DataViewPicker
+                                            v-model="selectedDataView"
+                                            :entityTypeGuid="EntityType.Person"
+                                            :disabled="isBusy"
+                                            @update:modelValue="onSettingsSelectionChanged" />
                         </div>
-                    </template>
 
-                    <div v-if="selectedSourceTypeIsAlternateGroup" class="form-group">
-                        <GroupPicker v-model="selectedAlternateGroup"
-                                     :disabled="isBusy"
-                                     @update:modelValue="onSettingsSelectionChanged" />
+                        <h4 v-if="groupName">{{ groupName }}</h4>
+
+                        <template v-if="selectedSourceTypeIsGroup">
+                            <!-- Desktop -->
+                            <div class="d-none d-md-block form-group">
+                                <ButtonGroup v-model="selectedSecondarySourceType"
+                                             :items="secondarySourceTypeItems"
+                                             :btnSize="BtnSize.ExtraSmall"
+                                             :disabled="isBusy"
+                                             @update:modelValue="onSettingsSelectionChanged" />
+                            </div>
+
+                            <!-- Mobile -->
+                            <div class="d-md-none form-group">
+                                <DropDownList v-model="selectedSecondarySourceType"
+                                              :items="secondarySourceTypeItems"
+                                              :showBlankItem="false"
+                                              :disabled="isBusy"
+                                              @update:modelValue="onSettingsSelectionChanged" />
+                            </div>
+                        </template>
                     </div>
 
-                    <div v-if="selectedSourceTypeIsDataView" class="form-group">
-                        <DataViewPicker
-                                        v-model="selectedDataView"
-                                        :entityTypeGuid="EntityType.Person"
-                                        :disabled="isBusy"
-                                        @update:modelValue="onSettingsSelectionChanged" />
+                    <div v-if="remainingResourceSpots" class="form-group">
+                        <span :class="remainingResourceSpots.cssClass">
+                            {{ remainingResourceSpots.label }}
+                        </span>
                     </div>
 
-                    <h4 v-if="groupName">{{ groupName }}</h4>
-
-                    <template v-if="selectedSourceTypeIsGroup">
-                        <!-- Desktop -->
-                        <div class="d-none d-md-block form-group">
-                            <ButtonGroup v-model="selectedSecondarySourceType"
-                                         :items="secondarySourceTypeItems"
-                                         :btnSize="BtnSize.ExtraSmall"
-                                         :disabled="isBusy"
-                                         @update:modelValue="onSettingsSelectionChanged" />
-                        </div>
-
-                        <!-- Mobile -->
-                        <div class="d-md-none form-group">
-                            <DropDownList v-model="selectedSecondarySourceType"
-                                          :items="secondarySourceTypeItems"
-                                          :showBlankItem="false"
-                                          :disabled="isBusy"
-                                          @update:modelValue="onSettingsSelectionChanged" />
-                        </div>
-                    </template>
                 </div>
 
-                <div v-if="remainingResourceSpots" class="form-group">
-                    <span :class="remainingResourceSpots.cssClass">
-                        {{ remainingResourceSpots.label }}
-                    </span>
-                </div>
+                <Loading :isLoading="isBusy">
+                    <NotificationBox v-if="unsuccessfulAssignmentPersonIds.length" :alertType="AlertType.Warning">
+                        <template v-if="!unsuccessfulAssignmentMessages.length">
+                            Some assignments were unsuccessful.
+                        </template>
+                        <template v-else-if="unsuccessfulAssignmentMessages.length === 1">
+                            {{ unsuccessfulAssignmentMessages[0] }}
+                        </template>
+                        <ul v-else>
+                            <li v-for="(message, index) in unsuccessfulAssignmentMessages" :key="index">
+                                {{ message }}
+                            </li>
+                        </ul>
+                    </NotificationBox>
 
-            </div>
+                    <NotificationBox v-if="loadResourcesErrorMessage" :alertType="AlertType.Warning">
+                        {{ loadResourcesErrorMessage }}
+                    </NotificationBox>
 
-            <Loading :isLoading="isBusy">
-                <NotificationBox v-if="unsuccessfulAssignmentPersonIds.length" :alertType="AlertType.Warning">
-                    Some assignments were unsuccessful.
-                    <ul v-if="unsuccessfulAssignmentMessages.length">
-                        <li v-for="(message, index) in unsuccessfulAssignmentMessages" :key="index">
-                            {{ message }}
-                        </li>
-                    </ul>
-                </NotificationBox>
+                    <NotificationBox v-else-if="loadResourcesInfoMessage" :alertType="AlertType.Info">
+                        {{ loadResourcesInfoMessage }}
+                    </NotificationBox>
 
-                <NotificationBox v-if="loadResourcesErrorMessage" :alertType="AlertType.Warning">
-                    {{ loadResourcesErrorMessage }}
-                </NotificationBox>
+                    <AvailableResources v-else v-model="selectedPersonIds"
+                                        :resources="availableResources"
+                                        :disabled="isBusy" />
+                </Loading>
 
-                <NotificationBox v-else-if="loadResourcesInfoMessage" :alertType="AlertType.Info">
-                    {{ loadResourcesInfoMessage }}
-                </NotificationBox>
-
-                <AvailableResources v-else v-model="selectedPersonIds"
-                                    :resources="availableResources"
-                                    :disabled="isBusy" />
-            </Loading>
-
-        </template>
+            </template>
+        </div>
 
     </Modal>
 </template>
@@ -150,7 +161,8 @@
     });
 
     const emit = defineEmits<{
-        (e: "update:isVisible"): void
+        (e: "update:isVisible"): void,
+        (e: "partialAssignmentSuccess"): void
     }>();
 
     const primarySourceTypeGroupValue = "group";
@@ -331,14 +343,10 @@
         return isLoadingResourceSettings.value || isLoadingResources.value || isAssigningResources.value;
     });
 
-    const saveText = computed((): string | undefined => {
-        if (isBusy.value
+    const disabled = computed((): boolean => {
+        return isBusy.value
             || selectedSourceType.value === undefined
-            || !selectedPersonIds.value?.length) {
-            return;
-        }
-
-        return "Assign";
+            || !selectedPersonIds.value?.length;
     });
 
     // #endregion
@@ -388,14 +396,6 @@
 
         // selectedAlternateGroup.value = resourceSettings.value?.resourceAlternateGroup ?? null;
         // selectedDataView.value = resourceSettings.value?.resourceDataView ?? null;
-
-        // TODO (JPH): Remove the following once user preferences are supported.
-        const sourceType = resourceSettings.value?.resourceListSourceType;
-        if (sourceType != undefined) {
-            if (secondarySourceTypes.some((secondary: ResourceListSourceType) => sourceType === secondary)) {
-                selectedPrimarySourceType.value = primarySourceTypeGroupValue;
-            }
-        }
 
         nextTick(() => {
             // TODO (JPH): Remove `nextTick` wrapper (but leave the following line) once user preferences are implemented.
@@ -523,6 +523,7 @@
         unsuccessfulAssignmentMessages.value = [];
 
         const attendanceOccurrenceId = props.occurrence?.attendanceOccurrenceId ?? 0;
+        let resourcesWereAssigned = false;
 
         await Promise.all(selectedPersonIds.value.map(async (personId: number) => {
             const params: HttpUrlParams = {
@@ -542,6 +543,9 @@
                 if (!result.isSuccess) {
                     unsuccessfulAssignmentPersonIds.value.push(personId);
                 }
+                else {
+                    resourcesWereAssigned = true;
+                }
             }
         }));
 
@@ -549,6 +553,10 @@
             isAssigningResources.value = false;
             selectedPersonIds.value = [...unsuccessfulAssignmentPersonIds.value];
             getResources();
+
+            if (resourcesWereAssigned) {
+                emit("partialAssignmentSuccess");
+            }
         }
         else {
             isVisible.value = false;
