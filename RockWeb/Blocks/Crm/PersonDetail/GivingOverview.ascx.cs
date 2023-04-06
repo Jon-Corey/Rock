@@ -334,7 +334,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                 .Select( a => new
                 {
                     TransactionDateTime = a.TransactionDateTime,
-                    TotalAmountBeforeRefund = a.TransactionDetails.Sum( d => d.Amount ),
+                    TotalAmountBeforeRefund = a.TransactionDetails.Where(td => td.Account.IsTaxDeductible == true).Sum( d => d.Amount ),
                     // For each Refund (there could be more than one) get the refund amount for each if the refunds's Detail records for the Account.
                     // Then sum that up for the total refund amount for the account
                     TotalRefundAmount = a
