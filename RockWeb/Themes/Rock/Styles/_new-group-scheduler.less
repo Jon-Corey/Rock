@@ -3,8 +3,22 @@
     height: auto !important;
   }
 
+  .panel-toolbar {
+    border-bottom: none;
+  }
+
   .panel-toolbar-mobile {
     padding: 4px 15px;
+  }
+
+  .panel-body {
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+
+    @media (min-width: @screen-md-min) {
+      padding-top: 0;
+    }
   }
 
   .snap-container {

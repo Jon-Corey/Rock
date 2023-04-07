@@ -11,7 +11,8 @@
             </NotificationBox>
 
             <Occurrence v-for="occurrence in occurrences" :key="occurrence.locationId"
-                        :occurrence="occurrence"></Occurrence>
+                        :occurrence="occurrence"
+                        :disabled="disabled"></Occurrence>
         </div>
     </div>
 </template>
@@ -27,6 +28,11 @@
         occurrences: {
             type: Array as PropType<GroupSchedulerOccurrenceBag[]>,
             required: true
+        },
+
+        disabled: {
+            type: Boolean as PropType<boolean>,
+            default: false
         }
     });
 

@@ -17,6 +17,7 @@
 // </copyright>
 //
 
+import { InjectionKey, Ref } from "vue";
 import { ResourceListSourceType } from "@Obsidian/Enums/Blocks/Group/Scheduling/resourceListSourceType";
 
 /**
@@ -230,6 +231,11 @@ export interface IRemainingResourceSpots {
     /** The CSS class(es) that should be applied to the remaining spots element. */
     cssClass: string;
 }
+
+/**
+ * The provide/inject keys used within the group scheduler components.
+ */
+export const ReloadScheduleOccurrences: InjectionKey<Ref<boolean>> = Symbol("reload-schedule-occurrences");
 
 /**
  * The available progress states for a group scheduler occurrence.

@@ -24,13 +24,14 @@
             <ScheduledResource v-for="resource in resources" :key="resource.AttendanceId"
                                :resource="resource"
                                v-model:updateResourceWarningMessage="updateResourceWarningMessage"
+                               :disabled="isBusy"
                                @resourceUpdated="onResourceUpdated"></ScheduledResource>
 
             <li class="list-group-item d-flex align-items-center">
                 <ProgressBar :progress="scheduleProgress"></ProgressBar>
                 <RockButton type="button"
                             class="circle-plus"
-                            :disabled="isLoadingResources"
+                            :disabled="isBusy"
                             @click="onSelectIndividualsClick">
                     <i class="fa fa-plus"></i>
                 </RockButton>
@@ -46,11 +47,11 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, PropType, ref, watch } from "vue";
+    import { computed, inject, PropType, ref, watch } from "vue";
     import ProgressBar from "./progressBar.partial.obs";
     import ScheduledResource from "./scheduledResource.partial.obs";
     import SelectIndividuals from "./selectIndividuals.partial.obs";
-    import { IScheduleProgress, ISchedulerResourceAttend } from "./types.partial";
+    import { IScheduleProgress, ISchedulerResourceAttend, ReloadScheduleOccurrences } from "./types.partial";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
@@ -64,6 +65,11 @@
         occurrence: {
             type: Object as PropType<GroupSchedulerOccurrenceBag>,
             required: true
+        },
+
+        disabled: {
+            type: Boolean as PropType<boolean>,
+            default: false
         }
     });
 
@@ -75,6 +81,8 @@
     const updateResourceWarningMessage = ref("");
 
     const resources = ref<ISchedulerResourceAttend[]>([]);
+
+    const reloadScheduleOccurrences = inject(ReloadScheduleOccurrences, ref(false));
 
     // #endregion
 
@@ -132,6 +140,10 @@
         return progress;
     });
 
+    const isBusy = computed((): boolean => {
+        return props.disabled || isLoadingResources.value;
+    });
+
     // #endregion
 
     // #region Functions
@@ -176,6 +188,12 @@
 
     watch(isSelectingIndividuals, () => {
         if (!isSelectingIndividuals.value) {
+            getCurrentResources();
+        }
+    });
+
+    watch(reloadScheduleOccurrences, () => {
+        if (reloadScheduleOccurrences.value) {
             getCurrentResources();
         }
     });

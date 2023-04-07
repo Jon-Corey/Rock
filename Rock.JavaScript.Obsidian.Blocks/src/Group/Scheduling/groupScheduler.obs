@@ -4,106 +4,121 @@
         {{ blockErrorMessage }}
     </Alert>
 
-    <div v-if="!blockErrorMessage" class="new-group-scheduler">
-        <div class="panel panel-block styled-scroll">
-            <div class="panel-heading">
-                <h3 class="panel-title">Group Scheduler</h3>
+    <Panel v-if="!blockErrorMessage"
+           title="Group Scheduler"
+           class="new-group-scheduler"
+           :hasZoom="true"
+           :hasFullscreen="true">
+
+        <!-- Toolbar: Desktop -->
+        <div class="panel-toolbar d-none d-md-flex flex-wrap flex-sm-nowrap justify-content-between">
+            <div :class="filtersCssClass"
+                 @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+
+            <div class="d-block">
+                <RockButton :btnSize="BtnSize.ExtraSmall"
+                            :disabled="isBusy"><i class="fa fa-clone"></i> Clone Schedules</RockButton>
+
+                <RockButton :btnSize="BtnSize.ExtraSmall"
+                            :disabled="isBusy"
+                            class="ml-1"><i class="fa fa-calendar-check"></i> Rosters</RockButton>
+
+                <RockButton :btnSize="BtnSize.ExtraSmall"
+                            :disabled="isBusy"
+                            class="ml-1"
+                            @click="onAutoScheduleClick"><i class="fa fa-magic"></i> Auto Schedule</RockButton>
+
+                <RockButton :btnSize="BtnSize.ExtraSmall"
+                            :disabled="isBusy"
+                            class="ml-1"><i class="fa fa-envelope-o"></i> Send Now</RockButton>
             </div>
+        </div>
 
-            <!-- Toolbar -->
-            <div class="panel-collapsable">
-                <!-- Desktop -->
-                <div class="panel-toolbar d-none d-md-flex flex-wrap flex-sm-nowrap justify-content-between">
-                    <div class="d-block text-muted clickable" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> {{ filtersText }}</div>
+        <!-- Toolbar: Mobile -->
+        <div class="panel-toolbar panel-toolbar-mobile d-flex d-md-none justify-content-between">
+            <RockButton :btnSize="BtnSize.Small"
+                        :disabled="isBusy"
+                        @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> Filters</RockButton>
 
-                    <div class="d-block">
-                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-clone"></i> Clone Schedules</RockButton>
-                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-calendar-check"></i> Rosters</RockButton>
-                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-magic"></i> Auto Schedule</RockButton>
-                        <RockButton :btnSize="BtnSize.ExtraSmall"><i class="fa fa-envelope-o"></i> Send Now</RockButton>
-                    </div>
-                </div>
-
-                <!-- Mobile -->
-                <div class="panel-toolbar panel-toolbar-mobile d-flex d-md-none justify-content-between">
-                    <RockButton :btnSize="BtnSize.Small" @click="onSelectFiltersClick"><i class="fa fa-sliders-h"></i> Filters</RockButton>
-
-                    <div class="d-flex">
-                        <div class="dropdown">
+            <div class="d-flex">
+                <div class="dropdown">
+                    <button type="button"
+                            class="btn btn-default btn-square btn-sm"
+                            data-toggle="dropdown"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                            :disabled="isBusy">
+                        <i class="fa fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        <li>
                             <button type="button"
-                                    class="btn btn-default btn-square btn-sm"
-                                    data-toggle="dropdown"
-                                    aria-haspopup="true"
-                                    aria-expanded="false">
-                                <i class="fa fa-ellipsis-v"></i>
+                                    class="dropdown-item btn-link text-nowrap"
+                                    :disabled="isBusy">
+                                <i class="fa fa-envelope-o"></i> Send Now
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-right">
-                                <li>
-                                    <button type="button"
-                                            class="dropdown-item btn-link text-nowrap">
-                                        <i class="fa fa-envelope-o"></i> Send Now
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button"
-                                            class="dropdown-item btn-link text-nowrap">
-                                        <i class="fa fa-clone"></i> Clone Schedules
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button"
-                                            class="dropdown-item btn-link text-nowrap">
-                                        <i class="fa fa-calendar-check"></i> Rosters
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button"
-                                            class="dropdown-item btn-link text-nowrap">
-                                        <i class="fa fa-magic"></i> Auto Schedule
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+                        </li>
+                        <li>
+                            <button type="button"
+                                    class="dropdown-item btn-link text-nowrap"
+                                    :disabled="isBusy">
+                                <i class="fa fa-clone"></i> Clone Schedules
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button"
+                                    class="dropdown-item btn-link text-nowrap"
+                                    :disabled="isBusy">
+                                <i class="fa fa-calendar-check"></i> Rosters
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button"
+                                    class="dropdown-item btn-link text-nowrap"
+                                    :disabled="isBusy"
+                                    @click="onAutoScheduleClick">
+                                <i class="fa fa-magic"></i> Auto Schedule
+                            </button>
+                        </li>
+                    </ul>
                 </div>
             </div>
+        </div>
 
-            <!-- Body -->
-            <div class="panel-body p-0">
+        <!-- Body -->
+        <Alert v-if="!anyGroupsSelected" :alertType="AlertType.Info">
+            Please select at least one group.
+        </Alert>
 
-                <Alert v-if="!anyGroupsSelected" :alertType="AlertType.Info">
-                    Please select at least one group.
-                </Alert>
+        <div v-else ref="snapContainer" class="snap-container">
 
-                <div v-else ref="snapContainer" class="snap-container">
+            <OccurrenceDate v-for="(occurrences, key, index) in occurrencesByDate" :key="key"
+                            :occurrences="occurrences"
+                            :showPrevNextButtons="showPrevNextButtons"
+                            :disabled="isBusy"
+                            @scheduleComponentsCreated="onScheduleComponentsCreated(index, $event)"
+                            @goPrevious="onGoPrevious(index, $event)"
+                            @goNext="onGoNext(index, $event)"></OccurrenceDate>
 
-                    <OccurrenceDate v-for="(occurrences, key, index) in occurrencesByDate" :key="key"
-                                    :occurrences="occurrences"
-                                    :showPrevNextButtons="showPrevNextButtons"
-                                    @scheduleComponentsCreated="onScheduleComponentsCreated(index, $event)"
-                                    @goPrevious="onGoPrevious(index, $event)"
-                                    @goNext="onGoNext(index, $event)"></OccurrenceDate>
-
-                </div>
-
-            </div>
         </div>
 
         <SelectFilters v-model:isVisible="isSelectingFilters"
                        :appliedFilters="appliedFilters"
                        @filtersApplied="onFiltersApplied" />
-    </div>
+    </Panel>
 </template>
 
 <script setup lang="ts">
-    import { ComponentPublicInstance, computed, nextTick, ref } from "vue";
+    import { ComponentPublicInstance, computed, nextTick, provide, ref } from "vue";
     import OccurrenceDate from "./GroupScheduler/occurrenceDate.partial.obs";
     import SelectFilters from "./GroupScheduler/selectFilters.partial.obs";
+    import { ReloadScheduleOccurrences } from "./GroupScheduler/types.partial";
     import Alert from "@Obsidian/Controls/alert.obs";
+    import Panel from "@Obsidian/Controls/panel";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { AlertType } from "@Obsidian/Enums/Controls/alertType";
     import { BtnSize } from "@Obsidian/Enums/Controls/btnSize";
-    import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useReloadBlock } from "@Obsidian/Utility/block";
+    import { getSecurityGrant, onConfigurationValuesChanged, provideSecurityGrant, useConfigurationValues, useInvokeBlockAction, useReloadBlock } from "@Obsidian/Utility/block";
     import { GroupSchedulerAppliedFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerAppliedFiltersBag";
     import { GroupSchedulerFiltersBag } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/groupSchedulerFiltersBag";
     import { GroupSchedulerInitializationBox } from "@Obsidian/ViewModels/Blocks/Group/Scheduling/GroupScheduler/GroupSchedulerInitializationBox";
@@ -111,6 +126,7 @@
     import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const config = useConfigurationValues<GroupSchedulerInitializationBox>();
+    const invokeBlockAction = useInvokeBlockAction();
 
     const securityGrant = getSecurityGrant(config.securityGrantToken);
     const reloadBlock = useReloadBlock();
@@ -129,6 +145,11 @@
     const scheduleOccurrences = ref<GroupSchedulerOccurrenceBag[] | null | undefined>(config.scheduleOccurrences);
 
     const isSelectingFilters = ref(false);
+
+    const isAutoScheduling = ref(false);
+    const autoScheduleErrorMessage = ref("");
+
+    const reloadScheduleOccurrences = ref(false);
 
     // #endregion
 
@@ -166,6 +187,10 @@
         ];
 
         return ` Filters: ${filtersTextSegements.filter(s => s).join(" | ")}`;
+    });
+
+    const filtersCssClass = computed((): string => {
+        return `d-block text-muted${(isBusy.value ? "" : " clickable")}`;
     });
 
     const appliedFilters = computed((): GroupSchedulerAppliedFiltersBag => {
@@ -224,6 +249,10 @@
         });
 
         return uniqueScheduleIds.length > 0;
+    });
+
+    const isBusy = computed((): boolean => {
+        return isSelectingFilters.value || isAutoScheduling.value;
     });
 
     // #endregion
@@ -317,7 +346,40 @@
      * Handles the click event of the "Filters..." elements, to show the `SelectFilters` component.
      */
     function onSelectFiltersClick(): void {
+        if (isBusy.value) {
+            return;
+        }
+
         isSelectingFilters.value = true;
+    }
+
+    /**
+     * Handles the click event of the "Auto Schedule" button".
+     */
+    async function onAutoScheduleClick(): Promise<void> {
+        if (isAutoScheduling.value) {
+            return;
+        }
+
+        isAutoScheduling.value = true;
+        autoScheduleErrorMessage.value = "";
+
+        const result = await invokeBlockAction<GroupSchedulerAppliedFiltersBag>("AutoSchedule", { bag: filters.value });
+        isAutoScheduling.value = false;
+
+        if (!result.isSuccess) {
+            autoScheduleErrorMessage.value = result.errorMessage || "Unknown error while auto-scheduling.";
+            return;
+        }
+
+        filters.value = result.data?.filters;
+        scheduleOccurrences.value = result.data?.scheduleOccurrences;
+
+        reloadScheduleOccurrences.value = true;
+
+        nextTick(() => {
+            reloadScheduleOccurrences.value = false;
+        });
     }
 
     /**
@@ -371,6 +433,7 @@
 
     // #endregion
 
+    provide(ReloadScheduleOccurrences, reloadScheduleOccurrences);
     provideSecurityGrant(securityGrant);
 
     onConfigurationValuesChanged(reloadBlock);

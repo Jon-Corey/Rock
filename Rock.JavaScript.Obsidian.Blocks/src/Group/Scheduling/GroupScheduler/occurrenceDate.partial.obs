@@ -13,6 +13,7 @@
                       :occurrences="occurrences"
                       :showPrevNextButtons="showPrevNextButtons"
                       :ref="(comp) => addScheduleComponent(comp, index)"
+                      :disabled="disabled"
                       @goPrevious="$emit('goPrevious', index)"
                       @goNext="$emit('goNext', index)"></Schedule>
 
@@ -34,6 +35,11 @@
         },
 
         showPrevNextButtons: {
+            type: Boolean as PropType<boolean>,
+            default: false
+        },
+
+        disabled: {
             type: Boolean as PropType<boolean>,
             default: false
         }

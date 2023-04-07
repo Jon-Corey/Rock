@@ -18,7 +18,8 @@
         </NotificationBox>
 
         <Group v-for="(occurrences, key) in occurrencesByGroup" :key="key"
-               :occurrences="occurrences"></Group>
+               :occurrences="occurrences"
+               :disabled="disabled"></Group>
     </div>
 </template>
 
@@ -36,6 +37,11 @@
         },
 
         showPrevNextButtons: {
+            type: Boolean as PropType<boolean>,
+            default: false
+        },
+
+        disabled: {
             type: Boolean as PropType<boolean>,
             default: false
         }

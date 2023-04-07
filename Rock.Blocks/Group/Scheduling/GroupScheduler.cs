@@ -332,7 +332,7 @@ namespace Rock.Blocks.Group.Scheduling
                 } )
                 .ToList();
 
-            // Set aside the final list of group IDs for later use when selecting locations, schedules and occurrences to be scheduled.
+            // Set aside the final list of group IDs for later use.
             _groupIds = groups
                 .Select( g => g.Id )
                 .Distinct()
@@ -747,8 +747,6 @@ namespace Rock.Blocks.Group.Scheduling
         {
             using ( var rockContext = new RockContext() )
             {
-                rockContext.SqlLogging( true );
-
                 RefineFilters( rockContext, bag );
 
                 // TODO (JPH): Save selected filters to user preferences, once supported in Obsidian blocks.
@@ -758,8 +756,6 @@ namespace Rock.Blocks.Group.Scheduling
                     filters = bag,
                     ScheduleOccurrences = GetScheduleOccurrences( rockContext )
                 };
-
-                rockContext.SqlLogging( false );
 
                 return ActionOk( results );
             }
@@ -794,6 +790,41 @@ namespace Rock.Blocks.Group.Scheduling
                 var resourceSettings = ValidateAndApplyResourceSettings( rockContext, bag );
 
                 return ActionOk( resourceSettings );
+            }
+        }
+
+        /// <summary>
+        /// Validates and auto-schedules groups specified within the provided filters.
+        /// </summary>
+        /// <param name="bag">The filters containing the groups to auto-schedule.</param>
+        /// <returns>An object containing the validated filters and new list of filtered [group, location, schedule, occurrence date] occurrences.</returns>
+        [BlockAction]
+        public BlockActionResult AutoSchedule( GroupSchedulerFiltersBag bag )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                RefineFilters( rockContext, bag );
+
+                var scheduleOccurrences = GetScheduleOccurrences( rockContext );
+                if ( scheduleOccurrences.Any() )
+                {
+                    var attendanceOccurrenceIds = scheduleOccurrences
+                        .Select( s => s.AttendanceOccurrenceId )
+                        .ToList();
+
+                    var attendanceService = new AttendanceService( rockContext );
+
+                    attendanceService.SchedulePersonsAutomaticallyForAttendanceOccurrences( attendanceOccurrenceIds, this.RequestContext.CurrentPerson.PrimaryAlias );
+                    rockContext.SaveChanges();
+                }
+
+                var results = new GroupSchedulerAppliedFiltersBag
+                {
+                    filters = bag,
+                    ScheduleOccurrences = scheduleOccurrences
+                };
+
+                return ActionOk( results );
             }
         }
 
