@@ -690,6 +690,38 @@ namespace Rock.Blocks.Crm
         /// </summary>
         private (bool IsOptional, bool IsHidden) PlannedVisitDateProperties => GetFieldProperties( AttributeKey.PlannedVisitDate );
 
+        /// <summary>
+        /// Gets the columns.
+        /// </summary>
+        private int Columns => GetAttributeValue( AttributeKey.Columns ).AsInteger();
+
+        /// <summary>
+        /// Gets the "Create Account" description.
+        /// </summary>
+        private string CreateAccountDescription => GetAttributeValue( AttributeKey.CreateAccountDescription );
+
+        /// <summary>
+        /// Gets the create account properties.
+        /// </summary>
+        private (bool IsOptional, bool IsHidden) CreateAccountProperties => GetFieldProperties( AttributeKey.FirstAdultCreateAccount );
+
+        /// <summary>
+        /// Gets the "Create Account" title.
+        /// </summary>
+        private string CreateAccountTitle => GetAttributeValue( AttributeKey.CreateAccountTitle );
+
+        /// <summary>
+        /// Gets the adult mobile phone field properties.
+        /// </summary>
+        private (bool IsOptional, bool IsHidden) AdultMobilePhoneProperties => GetFieldProperties( AttributeKey.AdultMobilePhone );
+
+        /// <summary>
+        /// Gets the adult profile photo properties.
+        /// </summary>
+        private (bool IsOptional, bool IsHidden) AdultProfilePhotoProperties => GetFieldProperties( AttributeKey.AdultProfilePhoto );
+
+        private List<Guid> AdultAttributeCategoryGuids => GetAttributeValues( AttributeKey.AdultAttributeCategories ).AsGuidList();
+
         #endregion
 
         public override string BlockFileUrl => $"{base.BlockFileUrl}.obs";
@@ -826,6 +858,30 @@ namespace Rock.Blocks.Crm
 
         #region Private Methods
 
+        private List<AttributeCache> GetAdultAttributeCategoryAttributes( RockContext rockContext )
+        {
+            var attributeService = new AttributeService( rockContext );
+            var attributes = new List<AttributeCache>();
+
+            foreach ( var categoryGuid in this.AdultAttributeCategoryGuids )
+            {
+                var category = CategoryCache.Get( categoryGuid );
+
+                if ( category != null )
+                {
+                    foreach ( var attribute in attributeService.GetByCategoryId( category.Id, false ) )
+                    {
+                        if ( !attributes.Any( a => a.Guid == attribute.Guid ) )
+                        {
+                            attributes.Add( AttributeCache.Get( attribute ) );
+                        }
+                    }
+                }
+            }
+
+            return attributes;
+        }
+
         private FamilyPreRegistrationInitializationBox GetInitializationBox()
         {
             var box = new FamilyPreRegistrationInitializationBox
@@ -834,11 +890,39 @@ namespace Rock.Blocks.Crm
                 CampusSchedulesAttributeGuid = this.CampusSchedulesAttributeGuid,
                 CampusStatusesFilter = this.CampusStatusesFilter,
                 CampusTypesFilter = this.CampusTypesFilter,
+                Columns = this.Columns,
+                CreateAccountDescription = this.CreateAccountDescription,
+                CreateAccountTitle = this.CreateAccountTitle,
                 IsCampusOptional = this.IsCampusOptional,
                 IsCampusHidden = this.IsCampusHidden,
             };
 
             ( box.IsPlannedVisitDateOptional, box.IsPlannedVisitDatePanelHidden, box.IsPlannedSchedulePanelHidden, box.ErrorMessage ) = ShowHidePlannedDatePanels();
+            ( box.IsAdultMobilePhoneOptional, box.IsAdultMobilePhoneHidden ) = this.AdultMobilePhoneProperties;
+            ( box.IsAdultProfilePhotoOptional, box.IsAdultProfilePhotoHidden) = this.AdultProfilePhotoProperties;
+            ( box.IsCreateAccountOptional, box.IsCreateAccountHidden ) = this.CreateAccountProperties;
+
+            using ( var rockContext = new RockContext() )
+            {
+                var currentPerson = this.GetCurrentPerson();
+                var adultAttributes = GetAdultAttributeCategoryAttributes( rockContext );
+                // TODO JMH Get adult1 from current person based on the old block.
+                var adult1 = new Person();
+                adult1.LoadAttributes( rockContext );
+                box.Adult1 = new FamilyPreRegistrationPersonBag
+                {
+                    Attributes = adult1.GetPublicAttributesForEdit( currentPerson, attributeFilter: a1 => adultAttributes.Any( a => a.Guid == a1.Guid ) ),
+                    AttributeValues = adult1.GetPublicAttributeValuesForEdit( currentPerson, attributeFilter: a1 => adultAttributes.Any( a => a.Guid == a1.Guid ) )
+                };
+                // TODO JMH Get adult1 from current person based on the old block.
+                var adult2 = new Person();
+                adult2.LoadAttributes( rockContext );
+                box.Adult2 = new FamilyPreRegistrationPersonBag
+                {
+                    Attributes = adult2.GetPublicAttributesForEdit( currentPerson, attributeFilter: a2 => adultAttributes.Any( a => a.Guid == a2.Guid ) ),
+                    AttributeValues = adult2.GetPublicAttributeValuesForEdit( currentPerson, attributeFilter: a2 => adultAttributes.Any( a => a.Guid == a2.Guid ) )
+                };
+            }
 
             return box;
         }

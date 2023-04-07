@@ -22,9 +22,17 @@
 //
 
 import { Guid } from "@Obsidian/Types";
+import { FamilyPreRegistrationPersonBag } from "@Obsidian/ViewModels/Blocks/Crm/FamilyPreRegistration/familyPreRegistrationPersonBag";
 
 /** The box that contains all the initialization information for the Family Pre-Registration block. */
 export type FamilyPreRegistrationInitializationBox = {
+    /** Gets or sets the adult 1 information . */
+    adult1?: FamilyPreRegistrationPersonBag | null;
+
+    /** Gets or sets the adult 2 information. */
+    adult2?: FamilyPreRegistrationPersonBag | null;
+
+    /** Gets or sets the attribute unique identifier used to select campus schedules. */
     campusSchedulesAttributeGuid?: Guid | null;
 
     /** Filters the campus field by campus statuses. */
@@ -32,6 +40,13 @@ export type FamilyPreRegistrationInitializationBox = {
 
     /** Filters the campus field by campus types. */
     campusTypesFilter?: Guid[] | null;
+
+    /** The number of columns used to display the form. */
+    columns: number;
+
+    createAccountDescription?: string | null;
+
+    createAccountTitle?: string | null;
 
     /** The campus unique identifier to use by default when adding a new family. */
     defaultCampusGuid?: Guid | null;
@@ -41,6 +56,14 @@ export type FamilyPreRegistrationInitializationBox = {
      * an error is preventing the block from being displayed.
      */
     errorMessage?: string | null;
+
+    isAdultMobilePhoneHidden: boolean;
+
+    isAdultMobilePhoneOptional: boolean;
+
+    isAdultProfilePhotoHidden: boolean;
+
+    isAdultProfilePhotoOptional: boolean;
 
     /**
      * Indicates whether the campus field is hidden.
@@ -54,11 +77,17 @@ export type FamilyPreRegistrationInitializationBox = {
      */
     isCampusOptional: boolean;
 
+    isCreateAccountHidden: boolean;
+
+    isCreateAccountOptional: boolean;
+
     isPlannedSchedulePanelHidden: boolean;
 
     isPlannedVisitDateOptional: boolean;
 
     isPlannedVisitDatePanelHidden: boolean;
+
+    isUpdateAllowed: boolean;
 
     /** Gets or sets the navigation urls. */
     navigationUrls?: Record<string, string> | null;

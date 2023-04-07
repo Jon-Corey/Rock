@@ -49,6 +49,8 @@
     <Compile Include="Blocks\Crm\FamilyPreRegistration\FamilyPreRegistrationGetScheduleDatesRequestBag.cs" />
     <Compile Include="Blocks\Crm\FamilyPreRegistration\FamilyPreRegistrationGetScheduleDatesResponseBag.cs" />
     <Compile Include="Blocks\Crm\FamilyPreRegistration\FamilyPreRegistrationInitializationBox.cs" />
+    <Compile Include="Blocks\Crm\FamilyPreRegistration\FamilyPreRegistrationCreateAccountRequestBag.cs" />
+    <Compile Include="Blocks\Crm\FamilyPreRegistration\FamilyPreRegistrationPersonBag.cs" />
     <Compile Include="Blocks\Crm\FamilyPreRegistration\FamilyPreRegistrationScheduleDateBag.cs" />
     <Compile Include="Blocks\Crm\PhotoOptOut\PhotoOptOutBag.cs" />
     <Compile Include="Blocks\Cms\ContentCollectionDetail\CustomFieldFilterBag.cs" />
